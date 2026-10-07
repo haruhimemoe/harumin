@@ -11,7 +11,7 @@
 import { HARUMIN_COLLECTIONS } from "@haruhimemoe/harumin-config";
 import { Client, Events, GatewayIntentBits, Partials } from "discord.js";
 import { MongoClient } from "mongodb";
-import { VERSION } from "./constants.ts";
+import { DB_NAME, IDENTITY_DB_NAME, VERSION } from "./constants.ts";
 import { scoreEmbed } from "./embeds/osu.ts";
 import { loadEnv } from "./env.ts";
 import { createLinkListener } from "./listeners/links.ts";
@@ -42,8 +42,8 @@ const identityMongo = new MongoClient(env.IDENTITY_MONGODB_URI, {
   readPreference: "secondaryPreferred",
 });
 await Promise.all([mongo.connect(), identityMongo.connect()]);
-const db = mongo.db();
-const identityDb = identityMongo.db();
+const db = mongo.db(DB_NAME);
+const identityDb = identityMongo.db(IDENTITY_DB_NAME);
 
 const ensureIndexes = async () => {
   await db

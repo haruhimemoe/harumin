@@ -57,5 +57,11 @@ export const CONTEXT_TTL_MS = 30 * 60_000;
 export const EMBED_DEDUPE_MS = 60_000;
 /** How long a guild's settings stay cached. */
 export const SETTINGS_TTL_MS = 60_000;
+/** harumin's own database (settings, tracks, member records): the same name the site reads. */
+export const DB_NAME = "harumin";
+
+/** The hub's identity database, read-only. Named here, not taken from the URI, like every app. */
+export const IDENTITY_DB_NAME = "identity";
+
 /** How long a Discord to osu! link stays cached. */
 export const LINK_TTL_MS = 5 * 60_000;
