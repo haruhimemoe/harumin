@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: check · typecheck · test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: harumin
+
+      # harumin-config is a sibling checkout until it's on npm.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: haruhimemoe/harumin-config
+          persist-credentials: false
+          path: harumin-config
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: harumin/package.json
+
+      - name: Build harumin-config
+        working-directory: harumin-config
+        run: bun install --frozen-lockfile && bun run build
+
+      - name: Install
+        working-directory: harumin
+        run: bun install --frozen-lockfile
+
+      - name: Check
+        working-directory: harumin
+        run: bun run check && bun run typecheck && bun run test:coverage

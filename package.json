@@ -1,0 +1,43 @@
+{
+  "name": "harumin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "harumin, the osu! Discord bot from haruhime.moe. Slash commands only.",
+  "license": "MIT",
+  "author": "David (https://dvh.sh)",
+  "type": "module",
+  "packageManager": "bun@1.4.2",
+  "engines": {
+    "bun": ">=1.4"
+  },
+  "scripts": {
+    "start": "bun src/index.ts",
+    "dev": "bun --watch src/index.ts",
+    "deploy": "bun scripts/deploy.ts",
+    "export-commands": "bun scripts/export-commands.ts",
+    "check": "biome check .",
+    "check:fix": "biome check --write .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@haruhimemoe/compliance": "0.1.1",
+    "@haruhimemoe/harumin-config": "file:../harumin-config",
+    "@haruhimemoe/osu": "0.6.0",
+    "@haruhimemoe/pool": "0.3.0",
+    "discord.js": "14.27.0",
+    "mongodb": "7.6.0",
+    "rosu-pp-js": "4.0.1",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.14",
+    "@types/bun": "1.4.2",
+    "@vitest/coverage-v8": "5.0.1",
+    "mongodb-memory-server": "11.3.0",
+    "typescript": "7.0.2",
+    "vitest": "5.0.1"
+  }
+}
