@@ -100,8 +100,8 @@ export const fail = async (interaction: RepliableInteraction, text: string): Pro
 /** The /link nudge. */
 export const linkHint = (s: Services, self: boolean, discordId: string): string =>
   self
-    ? `You haven't linked an osu! account yet. Run **/link**, or pass \`name\`.\n-# Linking happens on ${s.env.HUB_URL}/account.`
-    : `<@${discordId}> hasn't linked an osu! account. Pass \`name\` instead.`;
+    ? `This Discord account isn't linked to a haruhime.moe account yet, so I don't know your osu! name. Link Discord on ${s.env.HUB_URL}/account (**/link** has the button), or pass \`name\`.`
+    : `<@${discordId}> hasn't linked Discord on haruhime.moe. Pass \`name\` instead.`;
 
 /**
  * @function loadPlayer
