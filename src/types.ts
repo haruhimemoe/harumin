@@ -4,7 +4,7 @@
  *       index.ts) and Command (one top-level slash command with its buttons and modals).
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Wed Oct 7, 2026
  */
 
 import type {
@@ -16,6 +16,7 @@ import type {
 import type { Env } from "./env.ts";
 import type { Apps } from "./services/apps.ts";
 import type { BeatmapFiles } from "./services/beatmap-files.ts";
+import type { Cards } from "./services/cards.ts";
 import type { ChannelContext } from "./services/context.ts";
 import type { Linking } from "./services/linking.ts";
 import type { Members } from "./services/members.ts";
@@ -34,6 +35,7 @@ export type Services = {
   beatmaps: BeatmapFiles;
   tracks: Tracks;
   apps: Apps;
+  cards: Cards;
   startedAt: number;
 };
 

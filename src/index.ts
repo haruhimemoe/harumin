@@ -5,7 +5,7 @@
  *       service routes, the /track poller and top.gg. Shuts down cleanly on SIGINT and SIGTERM.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Wed Oct 7, 2026
  */
 
 import { HARUMIN_COLLECTIONS } from "@haruhimemoe/harumin-config";
@@ -21,6 +21,7 @@ import { createServiceHandler } from "./service/handler.ts";
 import { createApps } from "./services/apps.ts";
 import { createBeatmapFiles } from "./services/beatmap-files.ts";
 import { createBudget } from "./services/budget.ts";
+import { createCards } from "./services/cards.ts";
 import { createChannelContext } from "./services/context.ts";
 import { createLinking, identityBatchLookup, identityLookup } from "./services/linking.ts";
 import { createMembers, MEMBER_INDEXES } from "./services/members.ts";
@@ -78,6 +79,7 @@ const services: Services = {
   }),
   tracks: createTracks(db, osu, { perMinute: env.OSU_RATE_PER_MINUTE, log }),
   apps: createApps(),
+  cards: createCards({ siteUrl: env.SITE_URL, token: env.HARUMIN_SERVICE_TOKEN, log }),
   startedAt: Date.now(),
 };
 

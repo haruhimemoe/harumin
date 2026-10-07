@@ -1,18 +1,21 @@
 /**
  * @file src/commands/recent.ts
  * @desc /recent: a player's most recent play (fails too, unless asked not to), with pp from rosu
- *       when osu! gives none and the full-combo pp. Sets the channel's map.
+ *       when osu! gives none and the full-combo pp, as a card image (the text embed when the
+ *       image can't be had). Sets the channel's map.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Wed Oct 7, 2026
  */
 
+import { beatmapUrl } from "@haruhimemoe/osu/shapes";
 import { SlashCommandBuilder } from "discord.js";
 import { scoreEmbed } from "../embeds/osu.ts";
 import type { Command } from "../types.ts";
 import { RULESET_NAMES } from "../utils/format.ts";
+import { toScoreCard } from "../views/cards.ts";
 import { tryScorePp } from "../views/pp.ts";
-import { addPlayerOptions, fail, loadPlayer } from "./shared.ts";
+import { addPlayerOptions, cardReply, fail, linkButtons, loadPlayer } from "./shared.ts";
 
 export const recent: Command = {
   category: "osu",
@@ -56,15 +59,20 @@ export const recent: Command = {
       );
     const pp = await tryScorePp(s, score);
     s.context.set(interaction.channelId, { key: "map", beatmapId: score.beatmapId });
-    await interaction.editReply({
-      embeds: [
-        scoreEmbed(score, {
-          pp,
-          player: profile,
-          heading: index > 1 ? `Recent play #${index}` : "Most recent play",
-          tries: tries === -1 ? scores.length - index + 1 : tries,
-        }),
-      ],
-    });
+    const heading = index > 1 ? `Recent play #${index}` : "Most recent play";
+    const tryCount = tries === -1 ? scores.length - index + 1 : tries;
+    const links = linkButtons([{ label: "Beatmap", url: beatmapUrl(score.beatmapId) }]);
+    const png = await s.cards.draw(
+      "score",
+      toScoreCard(score, { profile, ruleset, pp, heading, tries: tryCount }),
+    );
+    await interaction.editReply(
+      png
+        ? cardReply(png, "recent.png", links)
+        : {
+            embeds: [scoreEmbed(score, { pp, player: profile, heading, tries: tryCount })],
+            components: links,
+          },
+    );
   },
 };

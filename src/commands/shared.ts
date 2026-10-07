@@ -2,10 +2,10 @@
  * @file src/commands/shared.ts
  * @desc What several commands share: the player and ruleset options, loading the player a
  *       command is about, map options with the channel's last map as fallback, replies for
- *       problems, and page buttons.
+ *       problems, page buttons, and card image replies with link buttons.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Wed Oct 7, 2026
  */
 
 import type { Ruleset } from "@haruhimemoe/harumin-config";
@@ -206,3 +206,46 @@ export const pageButtons = (
  */
 export const clampPage = (page: number, pages: number): number =>
   Math.min(Math.max(1, Number.isFinite(page) ? Math.trunc(page) : 1), Math.max(1, pages));
+
+/** A link button: what it says and where it goes. */
+export type LinkButton = { label: string; url: string };
+
+/**
+ * @function linkButtons
+ * @param links {readonly LinkButton[]} up to five
+ * @returns {ActionRowBuilder<MessageActionRowComponentBuilder>[]} one row of link buttons, or none
+ */
+export const linkButtons = (
+  links: readonly LinkButton[],
+): ActionRowBuilder<MessageActionRowComponentBuilder>[] =>
+  links.length === 0
+    ? []
+    : [
+        new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
+          links
+            .slice(0, 5)
+            .map(({ label, url }) =>
+              new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel(label).setURL(url),
+            ),
+        ),
+      ];
+
+/**
+ * @function cardReply
+ * @param png {Buffer} the card image
+ * @param name {string} its file name, e.g. "profile.png"
+ * @param rows {ActionRowBuilder<MessageActionRowComponentBuilder>[]} buttons under it
+ * @returns {object} an edit that shows only the image and the buttons, replacing any earlier
+ *          embed or image
+ */
+export const cardReply = (
+  png: Buffer,
+  name: string,
+  rows: ActionRowBuilder<MessageActionRowComponentBuilder>[],
+) => ({
+  content: "",
+  embeds: [],
+  attachments: [],
+  files: [{ attachment: png, name }],
+  components: rows,
+});

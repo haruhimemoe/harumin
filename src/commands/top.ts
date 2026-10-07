@@ -1,10 +1,11 @@
 /**
  * @file src/commands/top.ts
- * @desc /top: a player's top 100, sorted and filtered, five a page with buttons. The list is
- *       fetched once and kept two minutes, so paging costs no osu! calls.
+ * @desc /top: a player's top 100, sorted and filtered, five a page with buttons, each page a
+ *       card image (the text embed when the image can't be had). The list is fetched once and
+ *       kept two minutes, so paging costs no osu! calls.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Wed Oct 7, 2026
  */
 
 import type { Ruleset } from "@haruhimemoe/harumin-config";
@@ -18,7 +19,15 @@ import type { Command, Services } from "../types.ts";
 import { RULESET_NAMES } from "../utils/format.ts";
 import { parseModsInput } from "../utils/mods.ts";
 import { arrangeScores, pageOf, TOP_SORTS, type TopSort } from "../utils/scores.ts";
-import { addPlayerOptions, fail, loadPlayer, pageButtons } from "./shared.ts";
+import { toScoreListCard } from "../views/cards.ts";
+import {
+  addPlayerOptions,
+  cardReply,
+  fail,
+  linkButtons,
+  loadPlayer,
+  pageButtons,
+} from "./shared.ts";
 
 type TopList = { profile: OsuUserProfile; scores: OsuScore[] };
 const lists = createTtlCache<string, TopList>(120_000, 500);
@@ -41,7 +50,7 @@ type View = {
   page: number;
 };
 
-const render = (list: TopList, view: View) => {
+const render = async (s: Services, list: TopList, view: View) => {
   const filter = view.mods === "-" ? null : parseModsInput(view.mods);
   const arranged = arrangeScores(list.scores, {
     sort: view.sort,
@@ -57,22 +66,41 @@ const render = (list: TopList, view: View) => {
   ]
     .filter(Boolean)
     .join(" · ");
+  const profileUrl = `${userUrl(view.osuId)}/${view.ruleset}`;
+  const rows = [
+    ...pageButtons(
+      `top:${view.osuId}:${view.ruleset}:${view.sort}:${view.mods}:${view.reverse ? 1 : 0}`,
+      page,
+      pages,
+    ),
+    ...linkButtons([{ label: "osu! profile", url: profileUrl }]),
+  ];
+  const png = await s.cards.draw(
+    "scores",
+    toScoreListCard(items, {
+      profile: list.profile,
+      ruleset: view.ruleset,
+      title: "Top plays",
+      note: note || null,
+      page,
+      pages,
+    }),
+  );
+  if (png) return cardReply(png, "top.png", rows);
   return {
+    content: "",
     embeds: [
       scoreListEmbed(items, {
         title: `Top ${RULESET_NAMES[view.ruleset]} plays`,
-        url: `${userUrl(view.osuId)}/${view.ruleset}`,
+        url: profileUrl,
         player: list.profile,
         page,
         pages,
         note: note || undefined,
       }),
     ],
-    components: pageButtons(
-      `top:${view.osuId}:${view.ruleset}:${view.sort}:${view.mods}:${view.reverse ? 1 : 0}`,
-      page,
-      pages,
-    ),
+    attachments: [],
+    components: rows,
   };
 };
 
@@ -123,7 +151,7 @@ export const top: Command = {
       ? (parseModsInput(modsInput) ?? []).map((m) => m.acronym).join("") || "NM"
       : "-";
     await interaction.editReply(
-      render(list, {
+      await render(s, list, {
         osuId: loaded.profile.osuId,
         ruleset: loaded.ruleset,
         sort: (interaction.options.getString("sort") as TopSort | null) ?? "pp",
@@ -149,6 +177,6 @@ export const top: Command = {
       if (!profile) return;
       list = await loadList(s, profile, view.ruleset);
     }
-    await interaction.editReply(render(list, view));
+    await interaction.editReply(await render(s, list, view));
   },
 };
