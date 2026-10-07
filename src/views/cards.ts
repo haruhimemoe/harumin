@@ -2,7 +2,8 @@
  * @file src/views/cards.ts
  * @desc osu! data as the card images want it (harumin-config's card shapes): the player, a
  *       profile, and a score with the same pp rules as the text embeds (osu!'s pp, else rosu's
- *       marked approximate, and the full-combo pp when it wasn't one). Covers that aren't on
+ *       marked approximate, and the full-combo pp when it wasn't one). Titles and artists in
+ *       their own script when osu! has them (the site draws Japanese). Covers that aren't on
  *       assets.ppy.sh are dropped and odd mod acronyms skipped, so a card always parses.
  * @author David @dvhsh (https://dvh.sh)
  * @created Wed Oct 7, 2026
@@ -114,8 +115,9 @@ export const toCardScore = (score: OsuScore, pp: ScorePp | null): CardScore => {
     map: {
       beatmapId: score.beatmapId,
       beatmapsetId: score.beatmap?.beatmapsetId ?? score.beatmapset?.beatmapsetId ?? null,
-      artist: score.beatmapset?.artist ?? "",
-      title: score.beatmapset?.title ?? `Beatmap #${score.beatmapId}`,
+      artist: score.beatmapset?.artistUnicode || score.beatmapset?.artist || "",
+      title:
+        score.beatmapset?.titleUnicode || score.beatmapset?.title || `Beatmap #${score.beatmapId}`,
       version: score.beatmap?.version ?? "",
       stars: pp?.stars ?? score.beatmap?.starRating ?? null,
     },

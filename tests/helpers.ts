@@ -3,7 +3,7 @@
  * @desc Hand-made osu! data for tests (osu!'s shapes, made-up values) and a fake clock.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Wed Oct 7, 2026
  */
 
 import { readFileSync } from "node:fs";
@@ -46,7 +46,14 @@ export const makeScore = (over: Partial<OsuScore> = {}): OsuScore => ({
     checksum: null,
     maxCombo: 132,
   },
-  beatmapset: { beatmapsetId: 1, title: "DISCOPRINCE", artist: "Kenji Ninuma", creator: "peppy" },
+  beatmapset: {
+    beatmapsetId: 1,
+    title: "DISCOPRINCE",
+    artist: "Kenji Ninuma",
+    titleUnicode: null,
+    artistUnicode: null,
+    creator: "peppy",
+  },
   user: { osuId: 2, username: "peppy", avatarUrl: null, countryCode: "AU" },
   ...over,
 });

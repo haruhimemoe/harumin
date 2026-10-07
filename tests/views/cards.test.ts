@@ -60,6 +60,17 @@ describe("card views", () => {
     expect(card.hits.map((hit) => hit.label)).toEqual(["300", "100", "50", "miss"]);
   });
 
+  it("uses the title and artist in their own script when osu! has them", () => {
+    const set = makeScore().beatmapset;
+    const card = toCardScore(
+      makeScore({
+        beatmapset: set && { ...set, titleUnicode: "ディスコプリンス", artistUnicode: "" },
+      }),
+      null,
+    );
+    expect(card.map).toMatchObject({ title: "ディスコプリンス", artist: "Kenji Ninuma" });
+  });
+
   it("marks rosu's pp approximate and gives fails no pp", () => {
     expect(toCardScore(makeScore({ pp: null }), PP)).toMatchObject({ pp: 150, ppApprox: true });
     const fail = toCardScore(makeScore({ pp: null, passed: false, rank: "F" }), PP);

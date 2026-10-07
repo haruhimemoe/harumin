@@ -25,7 +25,7 @@
   "dependencies": {
     "@haruhimemoe/compliance": "0.1.1",
     "@haruhimemoe/harumin-config": "^0.2.0",
-    "@haruhimemoe/osu": "0.6.0",
+    "@haruhimemoe/osu": "0.7.0",
     "@haruhimemoe/pool": "0.3.0",
     "discord.js": "14.27.0",
     "mongodb": "7.6.0",

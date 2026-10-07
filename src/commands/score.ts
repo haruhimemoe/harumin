@@ -4,7 +4,7 @@
  *       first. The best one shows in full, the rest as lines.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Wed Oct 7, 2026
  */
 
 import { SlashCommandBuilder } from "discord.js";
@@ -56,6 +56,8 @@ export const score: Command = {
             beatmapsetId: map.beatmapsetId,
             title: map.title,
             artist: map.artist,
+            titleUnicode: null,
+            artistUnicode: null,
             creator: map.creator,
           };
         }
