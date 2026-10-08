@@ -63,15 +63,23 @@ const build = async (s: Services, guildId: string, ruleset: Ruleset, stat: Serve
     }
     return profile ? { discordId, profile } : null;
   });
-  const rows = loaded
-    .filter((row): row is { discordId: string; profile: OsuUserProfile } => row !== null)
-    .map(({ discordId, profile }) => ({
-      discordId,
+  const found = loaded.filter(
+    (row): row is { discordId: string; profile: OsuUserProfile } => row !== null,
+  );
+  s.serverRows.set(
+    guildId,
+    found.map(({ profile }) => ({
       username: profile.username,
-      osuId: profile.osuId,
-      countryCode: profile.countryCode,
-      value: statOf(profile, stat),
-    }));
+      rank: profile.statistics.globalRank ?? null,
+    })),
+  );
+  const rows = found.map(({ discordId, profile }) => ({
+    discordId,
+    username: profile.username,
+    osuId: profile.osuId,
+    countryCode: profile.countryCode,
+    value: statOf(profile, stat),
+  }));
   rows.sort((a, b) => (stat === "rank" ? a.value - b.value : b.value - a.value));
   return rows;
 };

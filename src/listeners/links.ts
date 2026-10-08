@@ -35,7 +35,7 @@ import { findPack, findPackKey, findPool, renderPoolCard } from "../views/tools.
  * @returns {void} stores maps, matches, packs and pools (pack keys and bb links aren't remembered)
  */
 export const remember = (s: Pick<Services, "context">, channelId: string, ref: LinkRef): void => {
-  if (ref.key === "map") s.context.set(channelId, { key: "map", beatmapId: ref.beatmapId });
+  if (ref.key === "map") s.context.rememberMap(channelId, ref.beatmapId);
   else if (ref.key === "match") s.context.set(channelId, { key: "match", matchId: ref.matchId });
   else if (ref.key === "pack") s.context.set(channelId, { key: "pack", slug: ref.slug });
   else if (ref.key === "pool") s.context.set(channelId, { key: "pool", poolId: ref.poolId });

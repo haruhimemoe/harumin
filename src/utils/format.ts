@@ -143,3 +143,15 @@ export const escapeMarkdown = (text: string): string => text.replace(/([\\*_`~|>
  */
 export const truncate = (text: string, max: number): string =>
   text.length <= max ? text : `${text.slice(0, Math.max(0, max - 1))}…`;
+
+/**
+ * @function mapLabel
+ * @param map {{ artist: string; title: string; version: string; starRating: number }} a difficulty
+ * @returns {string} "Artist - Title [Diff] · 6.21★", for autocomplete
+ */
+export const mapLabel = (map: {
+  artist: string;
+  title: string;
+  version: string;
+  starRating: number;
+}): string => `${map.artist} - ${map.title} [${map.version}] · ${map.starRating.toFixed(2)}★`;

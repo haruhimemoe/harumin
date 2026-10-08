@@ -27,8 +27,10 @@ import { createBudget } from "./services/budget.ts";
 import { createCards } from "./services/cards.ts";
 import { createChannelContext } from "./services/context.ts";
 import { createLinking, identityBatchLookup, identityLookup } from "./services/linking.ts";
+import { createLookups } from "./services/lookups.ts";
 import { createMembers, MEMBER_INDEXES } from "./services/members.ts";
 import { createOsu } from "./services/osu.ts";
+import { createServerRows } from "./services/serverRows.ts";
 import { createSettings, mongoSettingsLoader } from "./services/settings.ts";
 import { createTracks, TRACK_INDEXES } from "./services/tracks.ts";
 import type { Services } from "./types.ts";
@@ -76,6 +78,8 @@ const services: Services = {
   linking: createLinking(identityLookup(identityDb), identityBatchLookup(identityDb)),
   settings: createSettings(mongoSettingsLoader(db)),
   context: createChannelContext(),
+  lookups: createLookups(),
+  serverRows: createServerRows(),
   members: createMembers(db),
   beatmaps: createBeatmapFiles({
     dir: env.CACHE_DIR,

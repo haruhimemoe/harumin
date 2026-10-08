@@ -10,6 +10,7 @@
 
 import { OsuApiError } from "@haruhimemoe/osu";
 import type { Interaction, RepliableInteraction } from "discord.js";
+import { handleAutocomplete } from "./commands/autocomplete.ts";
 import { fail } from "./commands/shared.ts";
 import { findCommand } from "./registry.ts";
 import type { Services } from "./types.ts";
@@ -54,6 +55,10 @@ export const createRouter =
   (s: Services, log: (message: string, error?: unknown) => void) =>
   async (interaction: Interaction): Promise<void> => {
     if (interaction.guildId) s.members.seen(interaction.guildId, interaction.user.id);
+    if (interaction.isAutocomplete()) {
+      await handleAutocomplete(interaction, s).catch((error) => log("autocomplete failed", error));
+      return;
+    }
     if (interaction.isChatInputCommand()) {
       const command = findCommand(interaction.commandName);
       if (!command) return;

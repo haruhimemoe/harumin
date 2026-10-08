@@ -35,7 +35,7 @@ export const map: Command = {
       await fail(interaction, "osu! has no beatmap with that id.");
       return;
     }
-    s.context.set(interaction.channelId, { key: "map", beatmapId });
+    s.context.rememberMap(interaction.channelId, beatmapId);
     await interaction.editReply(reply);
   },
 };

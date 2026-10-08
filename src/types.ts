@@ -20,8 +20,10 @@ import type { BeatmapFiles } from "./services/beatmap-files.ts";
 import type { Cards } from "./services/cards.ts";
 import type { ChannelContext } from "./services/context.ts";
 import type { Linking } from "./services/linking.ts";
+import type { Lookups } from "./services/lookups.ts";
 import type { Members } from "./services/members.ts";
 import type { Osu } from "./services/osu.ts";
+import type { ServerRows } from "./services/serverRows.ts";
 import type { Settings } from "./services/settings.ts";
 import type { Tracks } from "./services/tracks.ts";
 
@@ -32,6 +34,10 @@ export type Services = {
   linking: Linking;
   settings: Settings;
   context: ChannelContext;
+  /** Names each user looked up lately (autocomplete). */
+  lookups: Lookups;
+  /** Linked members per server as /server last listed them (autocomplete). */
+  serverRows: ServerRows;
   members: Members;
   beatmaps: BeatmapFiles;
   tracks: Tracks;

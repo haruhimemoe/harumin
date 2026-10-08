@@ -40,7 +40,11 @@ type Builder = SlashCommandBuilder | SlashCommandOptionsOnlyBuilder | SlashComma
 export const addPlayerOptions = <T extends Builder>(builder: T, withMode = true): T => {
   builder
     .addStringOption((option) =>
-      option.setName("name").setDescription("osu! username, profile link or #id").setMaxLength(64),
+      option
+        .setName("name")
+        .setDescription("osu! username, profile link or #id")
+        .setMaxLength(64)
+        .setAutocomplete(true),
     )
     .addUserOption((option) =>
       option.setName("discord").setDescription("A Discord member who linked their osu! account"),
@@ -80,6 +84,7 @@ export const addMapOption = <T extends Builder>(builder: T, required = false): T
           : "Beatmap link or id (default: the last map in this channel)",
       )
       .setMaxLength(200)
+      .setAutocomplete(true)
       .setRequired(required),
   );
   return builder;
@@ -142,6 +147,7 @@ export const loadPlayer = async (
         : `#${resolution.player.osuId}`;
     return fail(interaction, `osu! has no player ${who}.`);
   }
+  s.lookups.note(interaction.user.id, profile.username);
   return { profile, ruleset: asked ?? profile.playmode ?? "osu" };
 };
 

@@ -15,6 +15,7 @@ import type { ActionRowBuilder, APIEmbed, MessageActionRowComponentBuilder } fro
 import { linkButtons } from "../commands/shared.ts";
 import { mapEmbed } from "../embeds/osu.ts";
 import type { Services } from "../types.ts";
+import { mapLabel } from "../utils/format.ts";
 import { toMapCard } from "./cards.ts";
 import { tryMapPp } from "./pp.ts";
 
@@ -33,12 +34,13 @@ export type MapReply = {
  * @returns {Promise<MapReply | null>} the card, or null when osu! has no such map
  */
 export const renderMap = async (
-  s: Pick<Services, "osu" | "beatmaps" | "cards">,
+  s: Pick<Services, "osu" | "beatmaps" | "cards" | "context">,
   beatmapId: number,
   mods: readonly OsuMod[],
 ): Promise<MapReply | null> => {
   const map = await s.osu.getBeatmap(beatmapId);
   if (!map) return null;
+  s.context.nameMap(beatmapId, mapLabel(map));
   const local = await tryMapPp(s, beatmapId, map.checksum, mods);
   let stars: number | null = local?.attrs.stars ?? null;
   if (stars === null && mods.length > 0) {

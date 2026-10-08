@@ -165,3 +165,22 @@ describe("channel context", () => {
     expect(context.get("c", "map")).toBeNull();
   });
 });
+
+describe("channel map history", () => {
+  it("keeps the last 10 maps per channel, newest first, deduped, with labels", () => {
+    let t = 0;
+    const context = createChannelContext(() => t);
+    context.nameMap(5, "a - b [c] · 5.00★");
+    for (let i = 1; i <= 12; i++) context.rememberMap("c1", i);
+    context.rememberMap("c1", 5);
+    const maps = context.recentMaps("c1");
+    expect(maps).toHaveLength(10);
+    expect(maps[0]).toEqual({ beatmapId: 5, label: "a - b [c] · 5.00★" });
+    expect(maps[1]).toEqual({ beatmapId: 12, label: "Beatmap #12" });
+    expect(maps.filter((m) => m.beatmapId === 5)).toHaveLength(1);
+    expect(context.get("c1", "map")).toEqual({ key: "map", beatmapId: 5 });
+    expect(context.recentMaps("c2")).toEqual([]);
+    t = 31 * 60_000;
+    expect(context.recentMaps("c1")).toEqual([]);
+  });
+});

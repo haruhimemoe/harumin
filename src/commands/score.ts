@@ -12,6 +12,7 @@ import { beatmapUrl, userUrl } from "@haruhimemoe/osu/shapes";
 import { SlashCommandBuilder } from "discord.js";
 import { scoreEmbed, scoreListEmbed } from "../embeds/osu.ts";
 import type { Command } from "../types.ts";
+import { mapLabel } from "../utils/format.ts";
 import { toScoreCard, toScoreListCard } from "../views/cards.ts";
 import { tryScorePp } from "../views/pp.ts";
 import {
@@ -44,7 +45,7 @@ export const score: Command = {
       profile.osuId,
       ruleset ? { ruleset } : {},
     );
-    s.context.set(interaction.channelId, { key: "map", beatmapId });
+    s.context.rememberMap(interaction.channelId, beatmapId);
     const best = scores.sort((a, b) => (b.pp ?? 0) - (a.pp ?? 0) || b.totalScore - a.totalScore)[0];
     if (!best) {
       await fail(interaction, `**${profile.username}** has no scores on that map.`);
@@ -73,6 +74,9 @@ export const score: Command = {
           };
         }
       }
+    }
+    if (best.beatmap && best.beatmapset) {
+      s.context.nameMap(beatmapId, mapLabel({ ...best.beatmapset, ...best.beatmap }));
     }
     const pp = await tryScorePp(s, best);
     const heading = "Best score on this map";

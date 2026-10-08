@@ -13,7 +13,7 @@ import { beatmapUrl } from "@haruhimemoe/osu/shapes";
 import { SlashCommandBuilder } from "discord.js";
 import { scoreEmbed } from "../embeds/osu.ts";
 import type { Command } from "../types.ts";
-import { RULESET_NAMES } from "../utils/format.ts";
+import { mapLabel, RULESET_NAMES } from "../utils/format.ts";
 import { toScoreCard } from "../views/cards.ts";
 import { tryScorePp } from "../views/pp.ts";
 import { sessionOf } from "../views/session.ts";
@@ -64,7 +64,10 @@ export const recent: Command = {
           other.mods.map((m) => m.acronym).join() !== score.mods.map((m) => m.acronym).join(),
       );
     const pp = await tryScorePp(s, score);
-    s.context.set(interaction.channelId, { key: "map", beatmapId: score.beatmapId });
+    if (score.beatmap && score.beatmapset) {
+      s.context.nameMap(score.beatmapId, mapLabel({ ...score.beatmapset, ...score.beatmap }));
+    }
+    s.context.rememberMap(interaction.channelId, score.beatmapId);
     const heading = index > 1 ? `Recent play #${index}` : "Most recent play";
     const tryCount = tries === -1 ? scores.length - index + 1 : tries;
     const session = sessionOf(

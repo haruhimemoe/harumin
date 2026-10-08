@@ -14,6 +14,7 @@ import { SlashCommandBuilder } from "discord.js";
 import { leaderboardEmbed } from "../embeds/osu.ts";
 import { createTtlCache } from "../services/cache.ts";
 import type { Command, Services } from "../types.ts";
+import { mapLabel } from "../utils/format.ts";
 import { matchesMods, parseModsInput } from "../utils/mods.ts";
 import { pageOf } from "../utils/scores.ts";
 import { toLeaderboardCard } from "../views/cards.ts";
@@ -105,7 +106,8 @@ export const leaderboard: Command = {
       await fail(interaction, "osu! has no beatmap with that id.");
       return;
     }
-    s.context.set(interaction.channelId, { key: "map", beatmapId });
+    s.context.nameMap(beatmapId, mapLabel(board.map));
+    s.context.rememberMap(interaction.channelId, beatmapId);
     const mods = filter ? filter.map((mod) => mod.acronym).join("") || "NM" : "-";
     await interaction.editReply(await render(s, board, mods, 1));
   },

@@ -12,6 +12,7 @@ import { SlashCommandBuilder } from "discord.js";
 import { simulateEmbed } from "../embeds/osu.ts";
 import { simulate as simulatePp } from "../services/pp.ts";
 import type { Command } from "../types.ts";
+import { mapLabel } from "../utils/format.ts";
 import { parseModsInput } from "../utils/mods.ts";
 import { toSimulateCard } from "../views/cards.ts";
 import { addMapOption, cardReply, fail, linkButtons, mapFromOption } from "./shared.ts";
@@ -70,7 +71,8 @@ export const simulate: Command = {
       combo: input.combo,
       misses: input.misses,
     });
-    s.context.set(interaction.channelId, { key: "map", beatmapId });
+    s.context.nameMap(beatmapId, mapLabel(map));
+    s.context.rememberMap(interaction.channelId, beatmapId);
     const links = linkButtons([{ label: "Beatmap", url: beatmapUrl(beatmapId) }]);
     const png = await s.cards.draw("simulate", toSimulateCard(map, result, { ...input, mods }));
     await interaction.editReply(
