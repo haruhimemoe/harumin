@@ -26,7 +26,9 @@ const GUILD = "123456789012345678";
 
 describe("service routes", () => {
   const revalidate = vi.fn();
+  const revalidateUser = vi.fn();
   const handler = createServiceHandler({
+    revalidateUser,
     token: TOKEN,
     manageableGuilds: async (id) => (id === GUILD ? [{ id: GUILD, name: "osu!", icon: null }] : []),
     guildChannels: async (id) => (id === GUILD ? [{ id: GUILD, name: "general" }] : null),
@@ -62,6 +64,18 @@ describe("service routes", () => {
     expect(revalidate).toHaveBeenCalledWith(GUILD);
     expect((await call("/settings/revalidate", { method: "POST", body: "nope" })).status).toBe(400);
     expect((await call("/nope")).status).toBe(404);
+  });
+
+  it("drops a player's cached card settings", async () => {
+    const ok = await call("/users/revalidate", {
+      method: "POST",
+      body: JSON.stringify({ osuId: 2 }),
+    });
+    expect(ok.status).toBe(204);
+    expect(revalidateUser).toHaveBeenCalledWith(2);
+    expect((await call("/users/revalidate", { method: "POST", body: "{}" })).status).toBe(400);
+    const noAuth = await call("/users/revalidate", { method: "POST", body: "{}" }, "");
+    expect(noAuth.status).toBe(401);
   });
 });
 

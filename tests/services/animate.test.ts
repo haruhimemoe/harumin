@@ -11,6 +11,7 @@
 import { writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { readUserSettings } from "@haruhimemoe/harumin-config";
 import { describe, expect, it, vi } from "vitest";
 import { drawProfile } from "../../src/commands/osu.ts";
 import {
@@ -20,6 +21,7 @@ import {
   MAX_GIF_BYTES,
   type Runner,
 } from "../../src/services/animate.ts";
+import type { Services } from "../../src/types.ts";
 import { makeProfile } from "../helpers.ts";
 
 const GIF_URL = "https://assets.ppy.sh/user-profile-covers/2/x.gif";
@@ -113,9 +115,17 @@ describe("createAnimator", () => {
 describe("drawProfile", () => {
   const cards = (answer: Buffer | null) => ({ draw: vi.fn(async () => answer) });
   const still = Buffer.from(PNG);
+  const base = {
+    osu: { getBeatmapUserScores: vi.fn(async () => []), getBeatmap: vi.fn(async () => null) },
+    userSettings: {
+      get: async (osuId: number) => readUserSettings(osuId, null),
+      drop: () => undefined,
+    },
+  } as unknown as Pick<Services, "osu" | "userSettings">;
 
   it("sends the gif for a gif cover, drawn with a hole", async () => {
     const s = {
+      ...base,
       cards: cards(still),
       animate: { profile: vi.fn(async () => Buffer.from(GIF)) },
     };
@@ -128,14 +138,38 @@ describe("drawProfile", () => {
   });
 
   it("falls back to the still card, then to nothing", async () => {
-    const s = { cards: cards(still), animate: { profile: vi.fn(async () => null) } };
+    const s = { ...base, cards: cards(still), animate: { profile: vi.fn(async () => null) } };
     expect((await drawProfile(s, makeProfile({ coverUrl: GIF_URL }), "osu"))?.name).toBe(
       "profile.png",
     );
-    const plain = { cards: cards(still), animate: { profile: vi.fn() } };
+    const plain = { ...base, cards: cards(still), animate: { profile: vi.fn() } };
     expect((await drawProfile(plain, makeProfile(), "osu"))?.name).toBe("profile.png");
     expect(plain.animate.profile).not.toHaveBeenCalled();
-    const none = { cards: cards(null), animate: { profile: vi.fn() } };
+    const none = { ...base, cards: cards(null), animate: { profile: vi.fn() } };
     expect(await drawProfile(none, makeProfile(), "osu")).toBeNull();
+  });
+
+  it("draws the player's theme, and paper skips the cover and the gif", async () => {
+    const s = {
+      ...base,
+      userSettings: {
+        get: async (osuId: number) =>
+          readUserSettings(osuId, { osuId, accent: "sky", cover: "paper" }),
+        drop: () => undefined,
+      },
+      cards: cards(still),
+      animate: { profile: vi.fn() },
+    };
+    const drawn = await drawProfile(s, makeProfile({ coverUrl: GIF_URL }), "osu");
+    expect(drawn?.name).toBe("profile.png");
+    expect(s.animate.profile).not.toHaveBeenCalled();
+    expect(s.cards.draw).toHaveBeenCalledWith(
+      "profile",
+      expect.objectContaining({
+        cover: "image",
+        player: expect.objectContaining({ coverUrl: null }),
+        theme: { accent: "sky", favorite: null },
+      }),
+    );
   });
 });

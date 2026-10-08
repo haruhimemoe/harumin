@@ -4,7 +4,7 @@
  *       gif (ffmpeg lays it under the card), else still, else the text embed.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Wed Oct 7, 2026
+ * @modified Thu Oct 8, 2026
  */
 
 import type { Ruleset } from "@haruhimemoe/harumin-config";
@@ -14,22 +14,31 @@ import { SlashCommandBuilder } from "discord.js";
 import { profileEmbed } from "../embeds/osu.ts";
 import { isAnimatedCover } from "../services/animate.ts";
 import type { Command, Services } from "../types.ts";
+import { favoriteLine } from "../views/best.ts";
 import { toProfileCard } from "../views/cards.ts";
 import { addPlayerOptions, cardReply, linkButtons, loadPlayer } from "./shared.ts";
 
 /**
  * @function drawProfile
- * @param s {Services} cards and the animator
+ * @param s {Services} cards, the animator, osu! and card settings (accent, cover, favorite)
  * @param profile {OsuUserProfile} the player
  * @param ruleset {Ruleset} which ruleset's numbers
  * @returns {Promise<{ file: Buffer; name: string } | null>} the gif or PNG card, or null
  */
 export const drawProfile = async (
-  s: Pick<Services, "cards" | "animate">,
+  s: Pick<Services, "cards" | "animate" | "osu" | "userSettings">,
   profile: OsuUserProfile,
   ruleset: Ruleset,
 ): Promise<{ file: Buffer; name: string } | null> => {
-  const card = toProfileCard(profile, ruleset);
+  const settings = await s.userSettings.get(profile.osuId);
+  const favorite = settings.favoriteBeatmapId
+    ? await favoriteLine(s, profile.osuId, settings.favoriteBeatmapId, ruleset)
+    : null;
+  const themed = toProfileCard(profile, ruleset, { accent: settings.accent, favorite });
+  const card =
+    settings.cover === "paper"
+      ? { ...themed, player: { ...themed.player, coverUrl: null } }
+      : themed;
   const cover = card.player.coverUrl;
   if (isAnimatedCover(cover)) {
     const holed = await s.cards.draw("profile", { ...card, cover: "hole" });

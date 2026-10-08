@@ -4,7 +4,7 @@
  *       index.ts) and Command (one top-level slash command with its buttons and modals).
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Wed Oct 7, 2026
+ * @modified Thu Oct 8, 2026
  */
 
 import type {
@@ -26,6 +26,7 @@ import type { Osu } from "./services/osu.ts";
 import type { ServerRows } from "./services/serverRows.ts";
 import type { Settings } from "./services/settings.ts";
 import type { Tracks } from "./services/tracks.ts";
+import type { UserSettingsStore } from "./services/userSettings.ts";
 
 /** Everything a command may use. */
 export type Services = {
@@ -38,6 +39,8 @@ export type Services = {
   lookups: Lookups;
   /** Linked members per server as /server last listed them (autocomplete). */
   serverRows: ServerRows;
+  /** Each player's card settings, cached. */
+  userSettings: UserSettingsStore;
   members: Members;
   beatmaps: BeatmapFiles;
   tracks: Tracks;

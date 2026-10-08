@@ -33,6 +33,7 @@ import { createOsu } from "./services/osu.ts";
 import { createServerRows } from "./services/serverRows.ts";
 import { createSettings, mongoSettingsLoader } from "./services/settings.ts";
 import { createTracks, TRACK_INDEXES } from "./services/tracks.ts";
+import { createUserSettings, mongoUserSettingsLoader } from "./services/userSettings.ts";
 import type { Services } from "./types.ts";
 import { startTopgg } from "./utils/topgg.ts";
 import { toScoreCard } from "./views/cards.ts";
@@ -80,6 +81,7 @@ const services: Services = {
   context: createChannelContext(),
   lookups: createLookups(),
   serverRows: createServerRows(),
+  userSettings: createUserSettings(mongoUserSettingsLoader(db)),
   members: createMembers(db),
   beatmaps: createBeatmapFiles({
     dir: env.CACHE_DIR,
@@ -152,6 +154,7 @@ const server = Bun.serve({
     manageableGuilds: (discordId) => manageableGuilds(client, services.members, discordId),
     guildChannels: async (guildId) => guildChannels(client, guildId),
     revalidate: (guildId) => services.settings.invalidate(guildId),
+    revalidateUser: (osuId) => services.userSettings.drop(osuId),
   }),
 });
 log(`service routes on :${server.port}`);

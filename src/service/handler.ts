@@ -6,7 +6,7 @@
  *       guild list for a Discord id comes from the bot, never from the caller.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Thu Oct 8, 2026
  */
 
 import { createHash, timingSafeEqual } from "node:crypto";
@@ -14,6 +14,7 @@ import {
   type GuildChannels,
   type ManageableGuilds,
   revalidateBodySchema,
+  revalidateUserBodySchema,
   SERVICE_ROUTES,
   snowflakeSchema,
 } from "@haruhimemoe/harumin-config";
@@ -24,6 +25,8 @@ export type ServiceDeps = {
   manageableGuilds: (discordId: string) => Promise<ManageableGuilds["guilds"]>;
   guildChannels: (guildId: string) => Promise<GuildChannels["channels"] | null>;
   revalidate: (guildId: string) => void;
+  /** Drops a player's cached card settings. */
+  revalidateUser: (osuId: number) => void;
 };
 
 const digest = (value: string) => createHash("sha256").update(value).digest();
@@ -78,6 +81,12 @@ export const createServiceHandler =
       const body = revalidateBodySchema.safeParse(await request.json().catch(() => null));
       if (!body.success) return json({ error: "body must be { guildId }" }, 400);
       deps.revalidate(body.data.guildId);
+      return new Response(null, { status: 204 });
+    }
+    if (request.method === "POST" && url.pathname === SERVICE_ROUTES.revalidateUser) {
+      const body = revalidateUserBodySchema.safeParse(await request.json().catch(() => null));
+      if (!body.success) return json({ error: "body must be { osuId }" }, 400);
+      deps.revalidateUser(body.data.osuId);
       return new Response(null, { status: 204 });
     }
     return json({ error: "not found" }, 404);

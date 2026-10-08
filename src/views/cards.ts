@@ -7,7 +7,7 @@
  *       assets.ppy.sh are dropped and odd mod acronyms skipped, so a card always parses.
  * @author David @dvhsh (https://dvh.sh)
  * @created Wed Oct 7, 2026
- * @modified Wed Oct 7, 2026
+ * @modified Thu Oct 8, 2026
  */
 
 import type {
@@ -110,9 +110,14 @@ export const toCardPlayer = (profile: OsuUserProfile): CardPlayer => {
  * @function toProfileCard
  * @param profile {OsuUserProfile} the player
  * @param ruleset {Ruleset} which ruleset's numbers these are
+ * @param theme {ProfileCard["theme"]} the player's accent and favorite line, when they set one
  * @returns {ProfileCard} /osu's card
  */
-export const toProfileCard = (profile: OsuUserProfile, ruleset: Ruleset): ProfileCard => {
+export const toProfileCard = (
+  profile: OsuUserProfile,
+  ruleset: Ruleset,
+  theme?: ProfileCard["theme"],
+): ProfileCard => {
   const s = profile.statistics;
   return {
     ruleset,
@@ -126,6 +131,7 @@ export const toProfileCard = (profile: OsuUserProfile, ruleset: Ruleset): Profil
     grades: s.grades,
     joinDate: isoOrNull(profile.joinDate),
     cover: "image",
+    ...(theme ? { theme } : {}),
   };
 };
 
