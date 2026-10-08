@@ -15,8 +15,14 @@ import {
   CARD_ROUTES,
   type CompareCard,
   compareCardSchema,
+  type InfoCard,
+  type InviteCard,
+  infoCardSchema,
+  inviteCardSchema,
   type LeaderboardCard,
+  type LinkCard,
   leaderboardCardSchema,
+  linkCardSchema,
   type MapCard,
   type MatchCostCard,
   mapCardSchema,
@@ -53,6 +59,9 @@ export type CardInputs = {
   server: ServerCard;
   tracks: TracksCard;
   bb: BbCard;
+  info: InfoCard;
+  link: LinkCard;
+  invite: InviteCard;
 };
 
 /** One of the card routes. */
@@ -71,6 +80,9 @@ const SCHEMAS: { [K in CardKind]: z.ZodType<CardInputs[K]> } = {
   server: serverCardSchema,
   tracks: tracksCardSchema,
   bb: bbCardSchema,
+  info: infoCardSchema,
+  link: linkCardSchema,
+  invite: inviteCardSchema,
 };
 
 /** The drawer. */
