@@ -5,24 +5,34 @@
  *       (at most 50 profiles, cached ten minutes).
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Thu Oct 8, 2026
  */
 
 import type { Ruleset } from "@haruhimemoe/harumin-config";
 import type { OsuUserProfile } from "@haruhimemoe/osu";
 import { InteractionContextType, SlashCommandBuilder } from "discord.js";
-import { SERVER_STATS, type ServerRow, type ServerStat, serverEmbed } from "../embeds/social.ts";
+import {
+  SERVER_STATS,
+  type ServerRow,
+  type ServerStat,
+  serverEmbed,
+  showStat,
+} from "../embeds/social.ts";
 import { createTtlCache } from "../services/cache.ts";
 import { pickRuleset } from "../services/players.ts";
 import type { Command, Services } from "../types.ts";
 import { mapLimit } from "../utils/async.ts";
 import { pageOf } from "../utils/scores.ts";
-import { addModeOption, fail, pageButtons } from "./shared.ts";
+import { toServerCard } from "../views/toolCards.ts";
+import { addModeOption, cardReply, fail, pageButtons } from "./shared.ts";
+
+/** The server, as the card needs it. */
+type Guild = { id: string; name: string; icon: string | null };
 
 const PER_PAGE = 10;
 const MAX_PLAYERS = 50;
 const profiles = createTtlCache<string, OsuUserProfile | null>(600_000, 5_000);
-const boards = createTtlCache<string, { rows: ServerRow[]; name: string }>(120_000, 200);
+const boards = createTtlCache<string, { rows: ServerRow[]; guild: Guild }>(120_000, 200);
 
 const statOf = (profile: OsuUserProfile, stat: ServerStat): number => {
   const s = profile.statistics;
@@ -66,28 +76,46 @@ const build = async (s: Services, guildId: string, ruleset: Ruleset, stat: Serve
   return rows;
 };
 
-const render = (
-  name: string,
+const render = async (
+  s: Services,
+  guild: Guild,
   rows: ServerRow[],
-  key: { guildId: string; ruleset: Ruleset; stat: ServerStat },
+  key: { ruleset: Ruleset; stat: ServerStat },
   page: number,
 ) => {
   const view = pageOf(rows, page, PER_PAGE);
+  const options = {
+    stat: key.stat,
+    ruleset: key.ruleset,
+    start: (view.page - 1) * PER_PAGE,
+    page: view.page,
+    pages: view.pages,
+    total: rows.length,
+  };
+  const components = pageButtons(`server:${key.ruleset}:${key.stat}`, view.page, view.pages);
+  const png = await s.cards.draw(
+    "server",
+    toServerCard(
+      guild,
+      view.items.map((row) => ({ ...row, value: showStat[key.stat](row.value) })),
+      options,
+    ),
+  );
+  if (png) return { ...cardReply(png, "server.png", components), allowedMentions: { parse: [] } };
   return {
-    embeds: [
-      serverEmbed(name, view.items, {
-        stat: key.stat,
-        ruleset: key.ruleset,
-        start: (view.page - 1) * PER_PAGE,
-        page: view.page,
-        pages: view.pages,
-        total: rows.length,
-      }),
-    ],
-    components: pageButtons(`server:${key.ruleset}:${key.stat}`, view.page, view.pages),
+    content: "",
+    embeds: [serverEmbed(guild.name, view.items, options)],
+    attachments: [],
+    components,
     allowedMentions: { parse: [] },
   };
 };
+
+const guildOf = (guild: { id: string; name: string; icon: string | null }): Guild => ({
+  id: guild.id,
+  name: guild.name,
+  icon: guild.icon,
+});
 
 export const server: Command = {
   category: "osu",
@@ -114,10 +142,9 @@ export const server: Command = {
       pickRuleset(interaction.options.getString("mode"), settings.defaultMode) ?? "osu";
     const stat = (interaction.options.getString("stat") as ServerStat | null) ?? "pp";
     const rows = await build(s, interaction.guildId, ruleset, stat);
-    boards.set(`${interaction.guildId}:${ruleset}:${stat}`, { rows, name: interaction.guild.name });
-    await interaction.editReply(
-      render(interaction.guild.name, rows, { guildId: interaction.guildId, ruleset, stat }, 1),
-    );
+    const guild = guildOf(interaction.guild);
+    boards.set(`${interaction.guildId}:${ruleset}:${stat}`, { rows, guild });
+    await interaction.editReply(await render(s, guild, rows, { ruleset, stat }, 1));
   },
   async button(interaction, s, [ruleset, stat, page]) {
     if (!interaction.guildId) return;
@@ -131,10 +158,12 @@ export const server: Command = {
     if (!board) {
       board = {
         rows: await build(s, key.guildId, key.ruleset, key.stat),
-        name: interaction.guild?.name ?? "This server",
+        guild: interaction.guild
+          ? guildOf(interaction.guild)
+          : { id: key.guildId, name: "This server", icon: null },
       };
       boards.set(`${key.guildId}:${key.ruleset}:${key.stat}`, board);
     }
-    await interaction.editReply(render(board.name, board.rows, key, Number(page)));
+    await interaction.editReply(await render(s, board.guild, board.rows, key, Number(page)));
   },
 };

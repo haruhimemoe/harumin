@@ -4,7 +4,7 @@
  *       At most MAX_TRACKED_PER_GUILD players per server; the dashboard shows the same list.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Thu Oct 8, 2026
  */
 
 import { MAX_TRACKED_PER_GUILD, type Ruleset } from "@haruhimemoe/harumin-config";
@@ -19,7 +19,8 @@ import { trackListEmbed } from "../embeds/social.ts";
 import { parsePlayerInput, playerKey } from "../services/players.ts";
 import type { Command } from "../types.ts";
 import { RULESET_CHOICES, RULESET_NAMES } from "../utils/format.ts";
-import { fail } from "./shared.ts";
+import { toTracksCard } from "../views/toolCards.ts";
+import { fail, imageOrEmbed } from "./shared.ts";
 
 export const track: Command = {
   category: "osu",
@@ -82,9 +83,16 @@ export const track: Command = {
     }
     const sub = interaction.options.getSubcommand();
     if (sub === "list") {
-      await interaction.reply({
-        embeds: [trackListEmbed(await s.tracks.list(interaction.guildId), MAX_TRACKED_PER_GUILD)],
-      });
+      await interaction.deferReply();
+      const entries = await s.tracks.list(interaction.guildId);
+      const channels = interaction.guild?.channels.cache;
+      const png = await s.cards.draw(
+        "tracks",
+        toTracksCard(entries, MAX_TRACKED_PER_GUILD, (id) => channels?.get(id)?.name),
+      );
+      await interaction.editReply(
+        imageOrEmbed(png, "tracks.png", () => trackListEmbed(entries, MAX_TRACKED_PER_GUILD), []),
+      );
       return;
     }
     const input = parsePlayerInput(interaction.options.getString("name", true));

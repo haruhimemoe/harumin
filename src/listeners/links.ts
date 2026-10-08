@@ -6,31 +6,26 @@
  *       channel per minute; a channel where harumin can't post embeds gets nothing.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Wed Oct 7, 2026
+ * @modified Thu Oct 8, 2026
  */
 
 import {
   ActionRowBuilder,
-  type APIEmbed,
   ButtonBuilder,
   ButtonStyle,
   type Message,
   type MessageActionRowComponentBuilder,
   PermissionFlagsBits,
 } from "discord.js";
-import { EMBED_DEDUPE_MS } from "../constants.ts";
+import { matchCostReply } from "../commands/matchcost.ts";
+import { type CardMessage, imageOrEmbed, linkButtons } from "../commands/shared.ts";
+import { EMBED_DEDUPE_MS, LINKS } from "../constants.ts";
 import { bbPreviewEmbed, matchSummaryEmbed } from "../embeds/tools.ts";
 import { findLinks, type LinkRef, refId, settingFor } from "../links/index.ts";
 import { createTtlCache } from "../services/cache.ts";
 import type { Services } from "../types.ts";
 import { renderMap } from "../views/map.ts";
 import { findPack, findPackKey, findPool, renderPoolCard } from "../views/tools.ts";
-
-type Card = {
-  embeds: APIEmbed[];
-  files?: { attachment: Buffer; name: string }[];
-  components?: ActionRowBuilder<MessageActionRowComponentBuilder>[];
-};
 
 /**
  * @function remember
@@ -52,7 +47,7 @@ export const remember = (s: Pick<Services, "context">, channelId: string, ref: L
  * @param ref {LinkRef} a link
  * @returns {Promise<Card | null>} its card, or null when there's nothing to show
  */
-export const renderLink = async (s: Services, ref: LinkRef): Promise<Card | null> => {
+export const renderLink = async (s: Services, ref: LinkRef): Promise<CardMessage | null> => {
   switch (ref.key) {
     case "map": {
       return renderMap(s, ref.beatmapId, []);
@@ -60,8 +55,11 @@ export const renderLink = async (s: Services, ref: LinkRef): Promise<Card | null
     case "match": {
       const found = await s.osu.getMatch(ref.matchId, { maxPages: 10 });
       if (!found) return null;
+      const card = await matchCostReply(s, found, { formula: "bathbot", warmups: 0 });
+      if (card.files.length) return card;
       return {
         embeds: [matchSummaryEmbed(found.match)],
+        files: [],
         components: [
           new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
             new ButtonBuilder()
@@ -74,18 +72,25 @@ export const renderLink = async (s: Services, ref: LinkRef): Promise<Card | null
     }
     case "pack": {
       const found = await findPack(s, ref.slug);
-      return found ? { embeds: [await renderPoolCard(s, found)] } : null;
+      return found ? renderPoolCard(s, found) : null;
     }
     case "packKey": {
       const found = findPackKey(ref.packKey);
-      return found ? { embeds: [await renderPoolCard(s, found)] } : null;
+      return found ? renderPoolCard(s, found) : null;
     }
     case "pool": {
       const found = await findPool(s, ref.poolId);
-      return found ? { embeds: [await renderPoolCard(s, found)] } : null;
+      return found ? renderPoolCard(s, found) : null;
     }
-    case "bb":
-      return { embeds: [bbPreviewEmbed(ref.templateId)] };
+    case "bb": {
+      const png = await s.cards.draw("bb", { templateId: ref.templateId, name: null });
+      return imageOrEmbed(
+        png,
+        "bb.png",
+        () => bbPreviewEmbed(ref.templateId),
+        linkButtons([{ label: "Open on bb", url: `${LINKS.bb}/t/${ref.templateId}` }]),
+      );
+    }
   }
 };
 

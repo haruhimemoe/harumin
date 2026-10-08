@@ -4,7 +4,7 @@
  *       /matchcost, and /nochoke's summary.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Thu Oct 8, 2026
  */
 
 import type { Ruleset, TrackEntry } from "@haruhimemoe/harumin-config";
@@ -29,7 +29,8 @@ export const SERVER_STATS = ["pp", "rank", "accuracy", "playcount", "level"] as 
 /** One of SERVER_STATS. */
 export type ServerStat = (typeof SERVER_STATS)[number];
 
-const showStat: Readonly<Record<ServerStat, (n: number) => string>> = {
+/** Each stat as text: "12,345pp", "#1,234", "98.12%". */
+export const showStat: Readonly<Record<ServerStat, (n: number) => string>> = {
   pp: (n) => `${formatInt(Math.round(n))}pp`,
   rank: (n) => (n === Number.MAX_SAFE_INTEGER ? "unranked" : `#${formatInt(n)}`),
   accuracy: (n) => `${n.toFixed(2)}%`,

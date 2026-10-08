@@ -4,7 +4,7 @@
  *       pack when none is given).
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Thu Oct 8, 2026
  */
 
 import { extractPackKey } from "@haruhimemoe/pool";
@@ -65,6 +65,6 @@ export const pack: Command = {
       return;
     }
     if (slug) s.context.set(interaction.channelId, { key: "pack", slug });
-    await interaction.editReply({ embeds: [await renderPoolCard(s, found)] });
+    await interaction.editReply(await renderPoolCard(s, found));
   },
 };

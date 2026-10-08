@@ -6,7 +6,7 @@
  *       a pack key to open it on packs.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Thu Oct 8, 2026
  */
 
 import {
@@ -29,18 +29,20 @@ import {
   TextInputStyle,
 } from "discord.js";
 import { LINKS } from "../constants.ts";
-import { parsedPoolEmbed } from "../embeds/tools.ts";
+import { bucketCounts, parsedPoolEmbed } from "../embeds/tools.ts";
 import { refFromUrl } from "../links/index.ts";
 import type { Command, Services } from "../types.ts";
+import { toPoolCard } from "../views/toolCards.ts";
 import {
   type FoundPool,
   findPack,
   findPackKey,
   findPool,
+  metaFor,
   renderPoolCard,
   renderPoolCheck,
 } from "../views/tools.ts";
-import { fail } from "./shared.ts";
+import { type CardMessage, fail, imageOrEmbed, linkButtons } from "./shared.ts";
 
 const POOL_ID = /^[A-Za-z0-9_-]{6,40}$/;
 
@@ -76,7 +78,7 @@ const findAny = async (
 const answer = async (
   interaction: ChatInputCommandInteraction,
   s: Services,
-  render: (found: FoundPool) => Promise<import("discord.js").APIEmbed>,
+  render: (found: FoundPool) => Promise<CardMessage>,
 ) => {
   const input = interaction.options.getString("pool")?.trim() ?? null;
   await interaction.deferReply();
@@ -86,7 +88,7 @@ const answer = async (
   if (found === "unreadable")
     return void (await fail(interaction, "That isn't a pool link, id or pack key."));
   if (!found) return void (await fail(interaction, "No public pool there."));
-  await interaction.editReply({ embeds: [await render(found)] });
+  await interaction.editReply(await render(found));
 };
 
 export const pool: Command = {
@@ -148,7 +150,7 @@ export const pool: Command = {
         ),
     );
   },
-  async modal(interaction) {
+  async modal(interaction, s) {
     const name = interaction.fields.getTextInputValue("name").trim() || "Pasted pool";
     const { slots, newBuckets, errors } = parsePoolText(
       interaction.fields.getTextInputValue("text"),
@@ -171,6 +173,33 @@ export const pool: Command = {
     } catch {
       url = null;
     }
-    await interaction.reply({ embeds: [parsedPoolEmbed(slots, errors, url)] });
+    await interaction.deferReply();
+    const png = await s.cards.draw(
+      "pool",
+      toPoolCard({
+        source: "parsed",
+        name,
+        subtitle: bucketCounts(slots),
+        slots,
+        meta: await metaFor(s, slots),
+        note: errors.length
+          ? `${errors.length} line${errors.length === 1 ? "" : "s"} skipped · ${errors
+              .slice(0, 3)
+              .map((error) => `line ${error.line}: ${error.reason}`)
+              .join(" · ")}`
+          : null,
+      }),
+    );
+    await interaction.editReply(
+      imageOrEmbed(
+        png,
+        "pool.png",
+        () => parsedPoolEmbed(slots, errors, url),
+        linkButtons([
+          ...(url ? [{ label: "Open as a pack", url }] : []),
+          { label: "Build it on pools", url: `${LINKS.pools}/new` },
+        ]),
+      ),
+    );
   },
 };

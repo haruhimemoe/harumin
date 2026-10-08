@@ -6,25 +6,35 @@
  *       embed instead.
  * @author David @dvhsh (https://dvh.sh)
  * @created Wed Oct 7, 2026
- * @modified Wed Oct 7, 2026
+ * @modified Thu Oct 8, 2026
  */
 
 import {
+  type BbCard,
+  bbCardSchema,
   CARD_ROUTES,
   type CompareCard,
   compareCardSchema,
   type LeaderboardCard,
   leaderboardCardSchema,
   type MapCard,
+  type MatchCostCard,
   mapCardSchema,
+  matchCostCardSchema,
+  type PoolCard,
   type ProfileCard,
+  poolCardSchema,
   profileCardSchema,
   type ScoreCard,
   type ScoreListCard,
+  type ServerCard,
   type SimulateCard,
   scoreCardSchema,
   scoreListCardSchema,
+  serverCardSchema,
   simulateCardSchema,
+  type TracksCard,
+  tracksCardSchema,
 } from "@haruhimemoe/harumin-config";
 import type { z } from "zod";
 import { USER_AGENT } from "../constants.ts";
@@ -38,6 +48,11 @@ export type CardInputs = {
   leaderboard: LeaderboardCard;
   simulate: SimulateCard;
   compare: CompareCard;
+  matchcost: MatchCostCard;
+  pool: PoolCard;
+  server: ServerCard;
+  tracks: TracksCard;
+  bb: BbCard;
 };
 
 /** One of the card routes. */
@@ -51,6 +66,11 @@ const SCHEMAS: { [K in CardKind]: z.ZodType<CardInputs[K]> } = {
   leaderboard: leaderboardCardSchema,
   simulate: simulateCardSchema,
   compare: compareCardSchema,
+  matchcost: matchCostCardSchema,
+  pool: poolCardSchema,
+  server: serverCardSchema,
+  tracks: tracksCardSchema,
+  bb: bbCardSchema,
 };
 
 /** The drawer. */

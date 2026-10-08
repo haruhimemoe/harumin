@@ -75,7 +75,12 @@ const fakeServices = (over: Partial<Services> = {}): Services =>
     apps: {
       getPack: vi.fn(async (slug: string) =>
         slug === "AbCdEfGhIj"
-          ? { slug, name: "Pack", slots: [{ mod: "NM", index: 1, beatmapId: 75 }], url: "u" }
+          ? {
+              slug,
+              name: "Pack",
+              slots: [{ mod: "NM", index: 1, beatmapId: 75 }],
+              url: "https://packs.haruhime.moe/p/AbCdEfGhIj",
+            }
           : null,
       ),
       getPool: vi.fn(async (id: string) =>
@@ -89,7 +94,7 @@ const fakeServices = (over: Partial<Services> = {}): Services =>
               owner: { osuId: 2, username: "peppy" },
               slots: [{ mod: "HD", index: 1, beatmapId: 75 }],
               buckets: [],
-              url: "u",
+              url: "https://pools.haruhime.moe/p/abcdef",
             }
           : null,
       ),
@@ -141,8 +146,9 @@ describe("tool views", () => {
     const s = fakeServices();
     const slots = [1, 2, 3].map((beatmapId, i) => ({ mod: "NM", index: i + 1, beatmapId }));
     const check = await renderPoolCheck(s, { kind: "pool", name: "P", slots, url: "u" });
-    expect(check.description).toContain("**Not allowed**");
-    expect(check.description).toContain("**Couldn't check**");
+    expect(check.embeds[0]?.description).toContain("**Not allowed**");
+    expect(check.embeds[0]?.description).toContain("**Couldn't check**");
+    expect(check.components).toHaveLength(1);
     const failing = fakeServices({
       osu: {
         getBeatmaps: async () => Promise.reject(new Error("x")),
@@ -171,6 +177,24 @@ describe("link cards", () => {
     ).toContain("OWC · QF · 2026 · by peppy");
     expect(await renderLink(s, { key: "pool", poolId: "missing" })).toBeNull();
     expect((await renderLink(s, { key: "bb", templateId: "abcdef" }))?.embeds).toHaveLength(1);
+  });
+
+  it("sends images when the site draws them", async () => {
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+    const draw = vi.fn(async (_kind: string) => png);
+    const s = fakeServices({ cards: { draw } });
+    for (const ref of [
+      { key: "match", matchId: 1 },
+      { key: "pool", poolId: "abcdef" },
+      { key: "pack", slug: "AbCdEfGhIj" },
+      { key: "bb", templateId: "abcdef" },
+    ] as const) {
+      const card = await renderLink(s, ref);
+      expect(card?.files).toHaveLength(1);
+      expect(card?.embeds).toHaveLength(0);
+      expect(card?.components).toHaveLength(1);
+    }
+    expect(draw.mock.calls.map(([kind]) => kind)).toEqual(["matchcost", "pool", "pool", "bb"]);
   });
 
   it("remembers what each channel linked", () => {

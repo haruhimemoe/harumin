@@ -5,13 +5,14 @@
  *       problems, page buttons, and card image replies with link buttons.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Wed Oct 7, 2026
+ * @modified Thu Oct 8, 2026
  */
 
 import type { Ruleset } from "@haruhimemoe/harumin-config";
 import type { OsuUserProfile } from "@haruhimemoe/osu";
 import {
   ActionRowBuilder,
+  type APIEmbed,
   ButtonBuilder,
   ButtonStyle,
   type ChatInputCommandInteraction,
@@ -210,25 +211,60 @@ export const clampPage = (page: number, pages: number): number =>
 /** A link button: what it says and where it goes. */
 export type LinkButton = { label: string; url: string };
 
+const isWebUrl = ({ url }: LinkButton): boolean => {
+  try {
+    return ["https:", "http:"].includes(new URL(url).protocol);
+  } catch {
+    return false;
+  }
+};
+
 /**
  * @function linkButtons
  * @param links {readonly LinkButton[]} up to five
- * @returns {ActionRowBuilder<MessageActionRowComponentBuilder>[]} one row of link buttons, or none
+ * @returns {ActionRowBuilder<MessageActionRowComponentBuilder>[]} one row of link buttons (links
+ *          that aren't web URLs are left out), or none
  */
 export const linkButtons = (
   links: readonly LinkButton[],
 ): ActionRowBuilder<MessageActionRowComponentBuilder>[] =>
-  links.length === 0
+  links.filter(isWebUrl).length === 0
     ? []
     : [
         new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
           links
+            .filter(isWebUrl)
             .slice(0, 5)
             .map(({ label, url }) =>
               new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel(label).setURL(url),
             ),
         ),
       ];
+
+/** A reply with the card image and its buttons, or the text embed and the same buttons. */
+export type CardMessage = {
+  embeds: APIEmbed[];
+  files: { attachment: Buffer; name: string }[];
+  components: ActionRowBuilder<MessageActionRowComponentBuilder>[];
+};
+
+/**
+ * @function imageOrEmbed
+ * @param png {Buffer | null} the card image, or null when it couldn't be had
+ * @param name {string} its file name, e.g. "pool.png"
+ * @param embed {() => APIEmbed} the text embed to send instead
+ * @param components {ActionRowBuilder<MessageActionRowComponentBuilder>[]} buttons under either
+ * @returns {CardMessage} the image when there is one, else the embed
+ */
+export const imageOrEmbed = (
+  png: Buffer | null,
+  name: string,
+  embed: () => APIEmbed,
+  components: ActionRowBuilder<MessageActionRowComponentBuilder>[],
+): CardMessage =>
+  png
+    ? { embeds: [], files: [{ attachment: png, name }], components }
+    : { embeds: [embed()], files: [], components };
 
 /**
  * @function cardReply
