@@ -14,6 +14,7 @@ import type {
   RESTPostAPIChatInputApplicationCommandsJSONBody,
 } from "discord.js";
 import type { Env } from "./env.ts";
+import type { Animator } from "./services/animate.ts";
 import type { Apps } from "./services/apps.ts";
 import type { BeatmapFiles } from "./services/beatmap-files.ts";
 import type { Cards } from "./services/cards.ts";
@@ -36,6 +37,7 @@ export type Services = {
   tracks: Tracks;
   apps: Apps;
   cards: Cards;
+  animate: Animator;
   startedAt: number;
 };
 

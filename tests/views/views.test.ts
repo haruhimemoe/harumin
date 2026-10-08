@@ -71,6 +71,7 @@ const fakeServices = (over: Partial<Services> = {}): Services =>
     },
     beatmaps: { get: vi.fn(async (id: number) => (id === 76 ? null : FIXTURE_OSU)) },
     cards: { draw: vi.fn(async () => null) },
+    animate: { profile: vi.fn(async () => null) },
     apps: {
       getPack: vi.fn(async (slug: string) =>
         slug === "AbCdEfGhIj"

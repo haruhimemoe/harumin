@@ -95,6 +95,7 @@ export const toProfileCard = (profile: OsuUserProfile, ruleset: Ruleset): Profil
     rankedScore: s.rankedScore,
     grades: s.grades,
     joinDate: isoOrNull(profile.joinDate),
+    cover: "image",
   };
 };
 

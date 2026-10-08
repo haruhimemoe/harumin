@@ -18,6 +18,7 @@ import { createLinkListener } from "./listeners/links.ts";
 import { createRouter } from "./router.ts";
 import { guildChannels, manageableGuilds } from "./service/guilds.ts";
 import { createServiceHandler } from "./service/handler.ts";
+import { createAnimator } from "./services/animate.ts";
 import { createApps } from "./services/apps.ts";
 import { createBeatmapFiles } from "./services/beatmap-files.ts";
 import { createBudget } from "./services/budget.ts";
@@ -80,6 +81,7 @@ const services: Services = {
   tracks: createTracks(db, osu, { perMinute: env.OSU_RATE_PER_MINUTE, log }),
   apps: createApps(),
   cards: createCards({ siteUrl: env.SITE_URL, token: env.HARUMIN_SERVICE_TOKEN, log }),
+  animate: createAnimator({ log }),
   startedAt: Date.now(),
 };
 

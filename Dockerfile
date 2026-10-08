@@ -5,6 +5,10 @@ COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --production
 
 FROM oven/bun:1.4.2-slim
+# ffmpeg lays animated profile covers under /osu's card.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ffmpeg \
+  && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 ENV NODE_ENV=production CACHE_DIR=/app/.cache/osu SERVICE_PORT=8787
 COPY --from=deps /app/node_modules ./node_modules
