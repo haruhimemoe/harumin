@@ -3,16 +3,18 @@
  * @desc /simulate: pp for a made-up score on a map: accuracy, combo, misses and mods.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Wed Oct 7, 2026
  */
 
 import { formatMods } from "@haruhimemoe/osu/format";
+import { beatmapUrl } from "@haruhimemoe/osu/shapes";
 import { SlashCommandBuilder } from "discord.js";
 import { simulateEmbed } from "../embeds/osu.ts";
 import { simulate as simulatePp } from "../services/pp.ts";
 import type { Command } from "../types.ts";
 import { parseModsInput } from "../utils/mods.ts";
-import { addMapOption, fail, mapFromOption } from "./shared.ts";
+import { toSimulateCard } from "../views/cards.ts";
+import { addMapOption, cardReply, fail, linkButtons, mapFromOption } from "./shared.ts";
 
 export const simulate: Command = {
   category: "osu",
@@ -69,6 +71,12 @@ export const simulate: Command = {
       misses: input.misses,
     });
     s.context.set(interaction.channelId, { key: "map", beatmapId });
-    await interaction.editReply({ embeds: [simulateEmbed(map, result, input)] });
+    const links = linkButtons([{ label: "Beatmap", url: beatmapUrl(beatmapId) }]);
+    const png = await s.cards.draw("simulate", toSimulateCard(map, result, { ...input, mods }));
+    await interaction.editReply(
+      png
+        ? cardReply(png, "simulate.png", links)
+        : { embeds: [simulateEmbed(map, result, input)], components: links },
+    );
   },
 };

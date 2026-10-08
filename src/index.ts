@@ -9,8 +9,10 @@
  */
 
 import { HARUMIN_COLLECTIONS } from "@haruhimemoe/harumin-config";
+import { beatmapUrl, userUrl } from "@haruhimemoe/osu/shapes";
 import { Client, Events, GatewayIntentBits, Partials } from "discord.js";
 import { MongoClient } from "mongodb";
+import { linkButtons } from "./commands/shared.ts";
 import { DB_NAME, IDENTITY_DB_NAME, VERSION } from "./constants.ts";
 import { scoreEmbed } from "./embeds/osu.ts";
 import { loadEnv } from "./env.ts";
@@ -31,6 +33,7 @@ import { createSettings, mongoSettingsLoader } from "./services/settings.ts";
 import { createTracks, TRACK_INDEXES } from "./services/tracks.ts";
 import type { Services } from "./types.ts";
 import { startTopgg } from "./utils/topgg.ts";
+import { toScoreCard } from "./views/cards.ts";
 
 const log = (message: string, error?: unknown) => {
   if (error === undefined) console.log(`[harumin] ${message}`);
@@ -106,9 +109,25 @@ client.once(Events.ClientReady, (ready) => {
   services.tracks.start(async (channelId, score, place) => {
     const channel = await ready.channels.fetch(channelId).catch(() => null);
     if (!channel?.isSendable()) return;
-    await channel.send({
-      embeds: [scoreEmbed(score, { pp: null, heading: `New top play #${place}` })],
-    });
+    const heading = `New top play #${place}`;
+    const links = linkButtons([
+      { label: "Beatmap", url: beatmapUrl(score.beatmapId) },
+      { label: "osu! profile", url: `${userUrl(score.userId)}/${score.ruleset}` },
+    ]);
+    const profile = await services.osu
+      .getUserProfile(score.userId, { ruleset: score.ruleset })
+      .catch(() => null);
+    const png = profile
+      ? await services.cards.draw(
+          "score",
+          toScoreCard(score, { profile, ruleset: score.ruleset, pp: null, heading, tries: 1 }),
+        )
+      : null;
+    await channel.send(
+      png
+        ? { files: [{ attachment: png, name: "top-play.png" }], components: links }
+        : { embeds: [scoreEmbed(score, { pp: null, heading })], components: links },
+    );
   });
   stopTopgg = startTopgg({
     token: env.TOPGG_TOKEN,

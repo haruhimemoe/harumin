@@ -6,10 +6,11 @@
  *       and has a cooldown.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Wed Oct 7, 2026
  */
 
 import type { OsuScore } from "@haruhimemoe/osu";
+import { userUrl } from "@haruhimemoe/osu/shapes";
 import { SlashCommandBuilder } from "discord.js";
 import { scoreListEmbed } from "../embeds/osu.ts";
 import { weightedPp } from "../embeds/social.ts";
@@ -17,8 +18,9 @@ import type { ScorePp } from "../services/pp.ts";
 import type { Command } from "../types.ts";
 import { mapLimit } from "../utils/async.ts";
 import { formatPp, RULESET_NAMES } from "../utils/format.ts";
+import { toScoreListCard } from "../views/cards.ts";
 import { tryScorePp } from "../views/pp.ts";
-import { addPlayerOptions, fail, loadPlayer } from "./shared.ts";
+import { addPlayerOptions, cardReply, fail, linkButtons, loadPlayer } from "./shared.ts";
 
 const COOLDOWN_MS = 30_000;
 const lastUse = new Map<string, number>();
@@ -70,6 +72,28 @@ export const nochoke: Command = {
       .sort((a, b) => b.value - a.value)
       .filter((entry) => entry.pp && entry.value > (entry.score.pp ?? 0))
       .slice(0, 5);
+    const gain = `${formatPp(profile.statistics.pp)} now · ${formatPp(after)} without chokes (+${formatPp(after - profile.statistics.pp)})`;
+    const skipped = unfixed
+      ? ` · ${unfixed} play${unfixed === 1 ? "" : "s"} couldn't be recalculated`
+      : "";
+    const links = linkButtons([
+      { label: "osu! profile", url: `${userUrl(profile.osuId)}/${ruleset}` },
+    ]);
+    const png = await s.cards.draw(
+      "scores",
+      toScoreListCard(ranked, {
+        profile,
+        ruleset,
+        title: "Without chokes",
+        note: `${gain}${skipped}`.slice(0, 128),
+        page: 1,
+        pages: 1,
+      }),
+    );
+    if (png) {
+      await interaction.editReply(cardReply(png, "nochoke.png", links));
+      return;
+    }
     await interaction.editReply({
       embeds: [
         scoreListEmbed(ranked, {
@@ -77,9 +101,10 @@ export const nochoke: Command = {
           player: profile,
           page: 1,
           pages: 1,
-          note: `${formatPp(profile.statistics.pp)} now · **${formatPp(after)}** without chokes (+${formatPp(after - profile.statistics.pp)})${unfixed ? ` · ${unfixed} play${unfixed === 1 ? "" : "s"} couldn't be recalculated` : ""}`,
+          note: `${formatPp(profile.statistics.pp)} now · **${formatPp(after)}** without chokes (+${formatPp(after - profile.statistics.pp)})${skipped}`,
         }),
       ],
+      components: links,
     });
   },
 };

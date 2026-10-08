@@ -1,17 +1,28 @@
 /**
  * @file src/commands/score.ts
  * @desc /score: a player's scores on one map (the channel's last map when none is given), best
- *       first. The best one shows in full, the rest as lines.
+ *       first. The best one as a score card, the next five as a list card (text embeds when
+ *       the images can't be had).
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
  * @modified Wed Oct 7, 2026
  */
 
+import { beatmapUrl, userUrl } from "@haruhimemoe/osu/shapes";
 import { SlashCommandBuilder } from "discord.js";
 import { scoreEmbed, scoreListEmbed } from "../embeds/osu.ts";
 import type { Command } from "../types.ts";
+import { toScoreCard, toScoreListCard } from "../views/cards.ts";
 import { tryScorePp } from "../views/pp.ts";
-import { addMapOption, addPlayerOptions, fail, loadPlayer, mapFromOption } from "./shared.ts";
+import {
+  addMapOption,
+  addPlayerOptions,
+  cardReply,
+  fail,
+  linkButtons,
+  loadPlayer,
+  mapFromOption,
+} from "./shared.ts";
 
 export const score: Command = {
   category: "osu",
@@ -64,15 +75,54 @@ export const score: Command = {
       }
     }
     const pp = await tryScorePp(s, best);
-    const embeds = [scoreEmbed(best, { pp, player: profile, heading: "Best score on this map" })];
-    if (scores.length > 1) {
-      embeds.push(
-        scoreListEmbed(
-          scores.slice(1, 6).map((each, i) => ({ score: each, place: i + 2 })),
-          { title: `${scores.length - 1} more`, page: 1, pages: 1 },
+    const heading = "Best score on this map";
+    const rest = scores.slice(1, 6).map((each, i) => ({ score: each, place: i + 2 }));
+    const restTitle = `${scores.length - 1} more`;
+    const links = linkButtons([
+      { label: "Beatmap", url: beatmapUrl(beatmapId) },
+      { label: "osu! profile", url: `${userUrl(profile.osuId)}/${best.ruleset}` },
+    ]);
+    const [png, restPng] = await Promise.all([
+      s.cards.draw(
+        "score",
+        toScoreCard(best, { profile, ruleset: best.ruleset, pp, heading, tries: 1 }),
+      ),
+      rest.length
+        ? s.cards.draw(
+            "scores",
+            toScoreListCard(rest, {
+              profile,
+              ruleset: best.ruleset,
+              title: restTitle,
+              note: null,
+              page: 1,
+              pages: 1,
+            }),
+          )
+        : null,
+    ]);
+    const restEmbeds =
+      rest.length && !restPng
+        ? [scoreListEmbed(rest, { title: restTitle, page: 1, pages: 1 })]
+        : [];
+    if (png) {
+      await interaction.editReply({
+        ...cardReply(
+          png,
+          "score.png",
+          links,
+          restPng ? [{ attachment: restPng, name: "scores.png" }] : [],
         ),
-      );
+        embeds: restEmbeds,
+      });
+      return;
     }
-    await interaction.editReply({ embeds });
+    await interaction.editReply({
+      embeds: [
+        scoreEmbed(best, { pp, player: profile, heading }),
+        ...(rest.length ? [scoreListEmbed(rest, { title: restTitle, page: 1, pages: 1 })] : []),
+      ],
+      components: links,
+    });
   },
 };

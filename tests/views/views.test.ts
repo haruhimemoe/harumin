@@ -102,10 +102,21 @@ describe("map and pp views", () => {
   it("renders with the file, without it, and for a missing map", async () => {
     const s = fakeServices();
     const card = await renderMap(s, 75, [{ acronym: "HD" }]);
-    expect(card?.fields).toHaveLength(3);
+    expect(card?.embeds[0]?.fields).toHaveLength(3);
+    expect(card?.files).toEqual([]);
+    expect(card?.components).toHaveLength(1);
     const noFile = await renderMap(s, 76, [{ acronym: "DT" }]);
-    expect(noFile?.fields?.[0]?.value).toContain("7.77★");
+    expect(noFile?.embeds[0]?.fields?.[0]?.value).toContain("7.77★");
     expect(await renderMap(s, 404, [])).toBeNull();
+  });
+
+  it("sends the map card image when the site draws it", async () => {
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+    const s = fakeServices({ cards: { draw: vi.fn(async () => png) } });
+    const card = await renderMap(s, 75, []);
+    expect(card?.embeds).toEqual([]);
+    expect(card?.files).toEqual([{ attachment: png, name: "map.png" }]);
+    expect(s.cards.draw).toHaveBeenCalledWith("map", expect.objectContaining({ ruleset: "osu" }));
   });
 
   it("scores pp best effort", async () => {

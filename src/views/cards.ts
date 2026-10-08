@@ -13,13 +13,17 @@
 import type {
   CardPlayer,
   CardScore,
+  CompareCard,
+  LeaderboardCard,
+  MapCard,
   ProfileCard,
   Ruleset,
   ScoreCard,
   ScoreListCard,
+  SimulateCard,
 } from "@haruhimemoe/harumin-config";
-import type { OsuScore, OsuUserProfile } from "@haruhimemoe/osu";
-import type { ScorePp } from "../services/pp.ts";
+import type { BeatmapDetail, OsuMod, OsuScore, OsuUserProfile } from "@haruhimemoe/osu";
+import type { AccuracyPp, MapAttributes, ScorePp } from "../services/pp.ts";
 import { completion } from "../utils/format.ts";
 
 /** Each ruleset's judgements, in order, with the label a card prints. */
@@ -51,6 +55,32 @@ const HIT_LABELS: Readonly<Record<Ruleset, readonly (readonly [string, string])[
   ],
 };
 
+const percentOf = (value: number): number => Math.min(100, Math.max(0, value));
+
+/** Mod acronyms a card accepts (odd ones are skipped). */
+const cardMods = (mods: readonly Pick<OsuMod, "acronym">[]): string[] =>
+  mods.map((mod) => mod.acronym).filter((acronym) => /^[A-Z0-9]{2,3}$/.test(acronym));
+
+const countryOrNull = (code: string | null | undefined): string | null => {
+  const upper = code?.toUpperCase() ?? null;
+  return upper && /^[A-Z]{2}$/.test(upper) ? upper : null;
+};
+
+/**
+ * @function toCardMap
+ * @param map {BeatmapDetail} the difficulty
+ * @param stars {number | null} the rating to show (with mods), or null for osu!'s own
+ * @returns {CardScore["map"]} the map strip's data
+ */
+export const toCardMap = (map: BeatmapDetail, stars: number | null): CardScore["map"] => ({
+  beatmapId: map.beatmapId,
+  beatmapsetId: map.beatmapsetId,
+  artist: map.artist.slice(0, 256),
+  title: map.title.slice(0, 256),
+  version: map.version.slice(0, 256),
+  stars: stars ?? map.starRating,
+});
+
 const isoOrNull = (value: string | null): string | null => {
   if (!value) return null;
   const time = new Date(value);
@@ -63,11 +93,10 @@ const isoOrNull = (value: string | null): string | null => {
  * @returns {CardPlayer} who a card is about
  */
 export const toCardPlayer = (profile: OsuUserProfile): CardPlayer => {
-  const code = profile.countryCode?.toUpperCase() ?? null;
   return {
     osuId: profile.osuId,
     username: profile.username,
-    countryCode: code && /^[A-Z]{2}$/.test(code) ? code : null,
+    countryCode: countryOrNull(profile.countryCode),
     coverUrl: profile.coverUrl?.startsWith("https://assets.ppy.sh/") ? profile.coverUrl : null,
     supporter: profile.supporter,
     pp: Math.max(0, profile.statistics.pp),
@@ -123,7 +152,7 @@ export const toCardScore = (score: OsuScore, pp: ScorePp | null): CardScore => {
       stars: pp?.stars ?? score.beatmap?.starRating ?? null,
     },
     grade: score.passed ? score.rank : "F",
-    mods: score.mods.map((mod) => mod.acronym).filter((acronym) => /^[A-Z0-9]{2,3}$/.test(acronym)),
+    mods: cardMods(score.mods),
     pp: shownPp,
     ppApprox: score.pp === null && shownPp !== null,
     fcPp: showFc ? pp.fcPp : null,
@@ -168,12 +197,13 @@ export const toScoreCard = (
 
 /**
  * @function toScoreListCard
- * @param entries {readonly { score: OsuScore; place: number }[]} one page
+ * @param entries {readonly { score: OsuScore; place: number; pp?: ScorePp | null }[]} one page,
+ *        with rosu's numbers where they were worked out (the row then shows the full-combo pp)
  * @param options {{ profile; ruleset; title; note; page; pages }} the list around them
  * @returns {ScoreListCard} /top's card
  */
 export const toScoreListCard = (
-  entries: readonly { score: OsuScore; place: number }[],
+  entries: readonly { score: OsuScore; place: number; pp?: ScorePp | null }[],
   options: {
     profile: OsuUserProfile;
     ruleset: Ruleset;
@@ -189,5 +219,129 @@ export const toScoreListCard = (
   note: options.note,
   page: options.page,
   pages: Math.max(1, options.pages),
-  rows: entries.map(({ score, place }) => ({ place, score: toCardScore(score, null) })),
+  rows: entries.map(({ score, place, pp }) => ({ place, score: toCardScore(score, pp ?? null) })),
 });
+
+/**
+ * @function toMapCard
+ * @param map {BeatmapDetail} the difficulty
+ * @param options {{ mods; stars; attrs; pps }} the mods, the rating with them, rosu's numbers
+ *        with them (null without the .osu file) and pp at each accuracy
+ * @returns {MapCard} /map's card; AR only where the ruleset has it, OD everywhere but catch
+ */
+export const toMapCard = (
+  map: BeatmapDetail,
+  options: {
+    mods: readonly OsuMod[];
+    stars: number | null;
+    attrs: MapAttributes | null;
+    pps: readonly AccuracyPp[] | null;
+  },
+): MapCard => {
+  const { attrs } = options;
+  const rate = attrs?.clockRate ?? 1;
+  const ar = attrs ? attrs.ar : map.ar;
+  const od = attrs ? attrs.od : map.od;
+  return {
+    ruleset: map.mode,
+    map: {
+      ...toCardMap(map, options.stars ?? attrs?.stars ?? null),
+      creator: map.creator.slice(0, 32),
+      status: map.status?.slice(0, 16) ?? null,
+    },
+    mods: cardMods(options.mods),
+    cs: Math.max(0, attrs?.cs ?? map.cs),
+    ar: map.mode === "osu" || map.mode === "fruits" ? Math.max(0, ar ?? 0) : null,
+    od: map.mode === "fruits" ? null : Math.max(0, od ?? 0),
+    hp: Math.max(0, attrs?.hp ?? map.hp),
+    lengthSeconds: Math.max(0, map.lengthSeconds / rate),
+    bpm: Math.max(0, map.bpm * rate),
+    maxCombo: attrs?.maxCombo ?? map.maxCombo,
+    pps: (options.pps ?? []).slice(0, 6).map(({ accuracy, pp }) => ({
+      accuracy: percentOf(accuracy),
+      pp: Math.max(0, pp),
+    })),
+  };
+};
+
+/**
+ * @function toLeaderboardCard
+ * @param map {BeatmapDetail} the difficulty
+ * @param scores {readonly OsuScore[]} one page
+ * @param options {{ start; page; pages; filter }} the first row's index, the page, and the mod
+ *        filter's text
+ * @returns {LeaderboardCard} /leaderboard's card
+ */
+export const toLeaderboardCard = (
+  map: BeatmapDetail,
+  scores: readonly OsuScore[],
+  options: { start: number; page: number; pages: number; filter: string | null },
+): LeaderboardCard => ({
+  map: toCardMap(map, null),
+  filter: options.filter,
+  page: options.page,
+  pages: Math.max(1, options.pages),
+  rows: scores.map((score, i) => ({
+    place: options.start + i + 1,
+    osuId: score.user?.osuId ?? null,
+    username: score.user?.username.slice(0, 32) || "?",
+    countryCode: countryOrNull(score.user?.countryCode),
+    grade: score.passed ? score.rank : "F",
+    mods: cardMods(score.mods),
+    pp: score.pp,
+    accuracy: percentOf(score.accuracy * 100),
+    combo: score.maxCombo,
+    totalScore: score.totalScore,
+  })),
+});
+
+/**
+ * @function toSimulateCard
+ * @param map {BeatmapDetail} the difficulty
+ * @param result {{ pp: number; stars: number; maxCombo: number }} rosu's answer
+ * @param input {{ mods; accuracy?; combo?; misses? }} what was asked (missing means perfect)
+ * @returns {SimulateCard} /simulate's card
+ */
+export const toSimulateCard = (
+  map: BeatmapDetail,
+  result: { pp: number; stars: number; maxCombo: number },
+  input: {
+    mods: readonly OsuMod[];
+    accuracy?: number | undefined;
+    combo?: number | undefined;
+    misses?: number | undefined;
+  },
+): SimulateCard => ({
+  ruleset: map.mode,
+  map: toCardMap(map, result.stars),
+  mods: cardMods(input.mods),
+  accuracy: percentOf(input.accuracy ?? 100),
+  combo: Math.min(input.combo ?? result.maxCombo, result.maxCombo),
+  mapMaxCombo: result.maxCombo,
+  misses: input.misses ?? 0,
+  pp: Math.max(0, result.pp),
+});
+
+/**
+ * @function toCompareCard
+ * @param a {{ profile: OsuUserProfile; top: readonly OsuScore[] }} the first player and their best play
+ * @param b {{ profile: OsuUserProfile; top: readonly OsuScore[] }} the second
+ * @param ruleset {Ruleset} the ruleset compared
+ * @returns {CompareCard} /compare's card
+ */
+export const toCompareCard = (
+  a: { profile: OsuUserProfile; top: readonly OsuScore[] },
+  b: { profile: OsuUserProfile; top: readonly OsuScore[] },
+  ruleset: Ruleset,
+): CompareCard => {
+  const side = ({ profile, top }: { profile: OsuUserProfile; top: readonly OsuScore[] }) => ({
+    player: toCardPlayer(profile),
+    accuracy: percentOf(profile.statistics.accuracy),
+    playCount: profile.statistics.playCount,
+    playTime: profile.statistics.playTime,
+    maxCombo: profile.statistics.maxCombo,
+    ssCount: profile.statistics.grades.ss + profile.statistics.grades.ssh,
+    topPp: top[0]?.pp ?? null,
+  });
+  return { ruleset, a: side(a), b: side(b) };
+};

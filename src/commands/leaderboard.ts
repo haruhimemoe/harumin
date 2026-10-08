@@ -4,18 +4,27 @@
  *       (filtered here: osu! filters by mod only for supporters signed in).
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Wed Oct 7, 2026
  */
 
 import type { BeatmapDetail, OsuScore } from "@haruhimemoe/osu";
 import { formatMods } from "@haruhimemoe/osu/format";
+import { beatmapUrl } from "@haruhimemoe/osu/shapes";
 import { SlashCommandBuilder } from "discord.js";
 import { leaderboardEmbed } from "../embeds/osu.ts";
 import { createTtlCache } from "../services/cache.ts";
 import type { Command, Services } from "../types.ts";
 import { matchesMods, parseModsInput } from "../utils/mods.ts";
 import { pageOf } from "../utils/scores.ts";
-import { addMapOption, fail, mapFromOption, pageButtons } from "./shared.ts";
+import { toLeaderboardCard } from "../views/cards.ts";
+import {
+  addMapOption,
+  cardReply,
+  fail,
+  linkButtons,
+  mapFromOption,
+  pageButtons,
+} from "./shared.ts";
 
 const PER_PAGE = 10;
 const boards = createTtlCache<number, { map: BeatmapDetail; scores: OsuScore[] }>(120_000, 200);
@@ -30,22 +39,42 @@ const load = async (s: Services, beatmapId: number) => {
   return board;
 };
 
-const render = (board: { map: BeatmapDetail; scores: OsuScore[] }, mods: string, page: number) => {
+const render = async (
+  s: Services,
+  board: { map: BeatmapDetail; scores: OsuScore[] },
+  mods: string,
+  page: number,
+) => {
   const filter = mods === "-" ? null : parseModsInput(mods);
   const scores = filter
     ? board.scores.filter((score) => matchesMods(score.mods, filter))
     : board.scores;
   const view = pageOf(scores, page, PER_PAGE);
+  const options = { start: (view.page - 1) * PER_PAGE, page: view.page, pages: view.pages };
+  const rows = [
+    ...pageButtons(`leaderboard:${board.map.beatmapId}:${mods}`, view.page, view.pages),
+    ...linkButtons([{ label: "Beatmap", url: beatmapUrl(board.map.beatmapId) }]),
+  ];
+  const png = await s.cards.draw(
+    "leaderboard",
+    toLeaderboardCard(board.map, view.items, {
+      ...options,
+      filter: filter
+        ? `${formatMods(filter)} only · ${scores.length} of ${board.scores.length}`
+        : null,
+    }),
+  );
+  if (png) return cardReply(png, "leaderboard.png", rows);
   return {
+    content: "",
     embeds: [
       leaderboardEmbed(board.map, view.items, {
-        start: (view.page - 1) * PER_PAGE,
-        page: view.page,
-        pages: view.pages,
+        ...options,
         mods: filter ? formatMods(filter) : null,
       }),
     ],
-    components: pageButtons(`leaderboard:${board.map.beatmapId}:${mods}`, view.page, view.pages),
+    attachments: [],
+    components: rows,
   };
 };
 
@@ -78,11 +107,11 @@ export const leaderboard: Command = {
     }
     s.context.set(interaction.channelId, { key: "map", beatmapId });
     const mods = filter ? filter.map((mod) => mod.acronym).join("") || "NM" : "-";
-    await interaction.editReply(render(board, mods, 1));
+    await interaction.editReply(await render(s, board, mods, 1));
   },
   async button(interaction, s, [beatmapId, mods, page]) {
     await interaction.deferUpdate();
     const board = await load(s, Number(beatmapId));
-    if (board) await interaction.editReply(render(board, mods ?? "-", Number(page)));
+    if (board) await interaction.editReply(await render(s, board, mods ?? "-", Number(page)));
   },
 };

@@ -3,14 +3,16 @@
  * @desc /compare: two players side by side. `player` against you (or against `other`).
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Wed Oct 7, 2026
  */
 
+import { userUrl } from "@haruhimemoe/osu/shapes";
 import { SlashCommandBuilder } from "discord.js";
 import { compareEmbed } from "../embeds/osu.ts";
 import { parsePlayerInput, pickRuleset, playerKey, resolvePlayer } from "../services/players.ts";
 import type { Command } from "../types.ts";
-import { addModeOption, fail, linkHint } from "./shared.ts";
+import { toCompareCard } from "../views/cards.ts";
+import { addModeOption, cardReply, fail, linkButtons, linkHint } from "./shared.ts";
 
 export const compare: Command = {
   category: "osu",
@@ -60,8 +62,21 @@ export const compare: Command = {
       s.osu.getUserScores(a.osuId, "best", { ruleset, limit: 1 }),
       s.osu.getUserScores(b.osuId, "best", { ruleset, limit: 1 }),
     ]);
-    await interaction.editReply({
-      embeds: [compareEmbed({ profile: a, top: topA }, { profile: b, top: topB }, ruleset)],
-    });
+    const sides = [
+      { profile: a, top: topA },
+      { profile: b, top: topB },
+    ] as const;
+    const links = linkButtons(
+      sides.map(({ profile }) => ({
+        label: profile.username,
+        url: `${userUrl(profile.osuId)}/${ruleset}`,
+      })),
+    );
+    const png = await s.cards.draw("compare", toCompareCard(sides[0], sides[1], ruleset));
+    await interaction.editReply(
+      png
+        ? cardReply(png, "compare.png", links)
+        : { embeds: [compareEmbed(sides[0], sides[1], ruleset)], components: links },
+    );
   },
 };

@@ -6,7 +6,7 @@
  *       channel per minute; a channel where harumin can't post embeds gets nothing.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Wed Oct 7, 2026
  */
 
 import {
@@ -28,6 +28,7 @@ import { findPack, findPackKey, findPool, renderPoolCard } from "../views/tools.
 
 type Card = {
   embeds: APIEmbed[];
+  files?: { attachment: Buffer; name: string }[];
   components?: ActionRowBuilder<MessageActionRowComponentBuilder>[];
 };
 
@@ -54,8 +55,7 @@ export const remember = (s: Pick<Services, "context">, channelId: string, ref: L
 export const renderLink = async (s: Services, ref: LinkRef): Promise<Card | null> => {
   switch (ref.key) {
     case "map": {
-      const embed = await renderMap(s, ref.beatmapId, []);
-      return embed ? { embeds: [embed] } : null;
+      return renderMap(s, ref.beatmapId, []);
     }
     case "match": {
       const found = await s.osu.getMatch(ref.matchId, { maxPages: 10 });

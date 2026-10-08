@@ -11,18 +11,34 @@
 
 import {
   CARD_ROUTES,
+  type CompareCard,
+  compareCardSchema,
+  type LeaderboardCard,
+  leaderboardCardSchema,
+  type MapCard,
+  mapCardSchema,
   type ProfileCard,
   profileCardSchema,
   type ScoreCard,
   type ScoreListCard,
+  type SimulateCard,
   scoreCardSchema,
   scoreListCardSchema,
+  simulateCardSchema,
 } from "@haruhimemoe/harumin-config";
 import type { z } from "zod";
 import { USER_AGENT } from "../constants.ts";
 
 /** What each card route takes. */
-export type CardInputs = { profile: ProfileCard; score: ScoreCard; scores: ScoreListCard };
+export type CardInputs = {
+  profile: ProfileCard;
+  score: ScoreCard;
+  scores: ScoreListCard;
+  map: MapCard;
+  leaderboard: LeaderboardCard;
+  simulate: SimulateCard;
+  compare: CompareCard;
+};
 
 /** One of the card routes. */
 export type CardKind = keyof CardInputs;
@@ -31,6 +47,10 @@ const SCHEMAS: { [K in CardKind]: z.ZodType<CardInputs[K]> } = {
   profile: profileCardSchema,
   score: scoreCardSchema,
   scores: scoreListCardSchema,
+  map: mapCardSchema,
+  leaderboard: leaderboardCardSchema,
+  simulate: simulateCardSchema,
+  compare: compareCardSchema,
 };
 
 /** The drawer. */

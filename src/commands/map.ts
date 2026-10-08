@@ -1,9 +1,9 @@
 /**
  * @file src/commands/map.ts
- * @desc /map: a map card with stars, stats and pp at 95 to 100% for the given mods.
+ * @desc /map: a map card image with stars, stats and pp at 95 to 100% for the given mods.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Wed Oct 7, 2026
  */
 
 import { SlashCommandBuilder } from "discord.js";
@@ -30,12 +30,12 @@ export const map: Command = {
     const beatmapId = await mapFromOption(interaction, s);
     if (!beatmapId) return;
     await interaction.deferReply();
-    const embed = await renderMap(s, beatmapId, mods);
-    if (!embed) {
+    const reply = await renderMap(s, beatmapId, mods);
+    if (!reply) {
       await fail(interaction, "osu! has no beatmap with that id.");
       return;
     }
     s.context.set(interaction.channelId, { key: "map", beatmapId });
-    await interaction.editReply({ embeds: [embed] });
+    await interaction.editReply(reply);
   },
 };

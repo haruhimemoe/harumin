@@ -235,17 +235,19 @@ export const linkButtons = (
  * @param png {Buffer} the card image
  * @param name {string} its file name, e.g. "profile.png"
  * @param rows {ActionRowBuilder<MessageActionRowComponentBuilder>[]} buttons under it
- * @returns {object} an edit that shows only the image and the buttons, replacing any earlier
+ * @param more {readonly { attachment: Buffer; name: string }[]} more images after it
+ * @returns {object} an edit that shows only the images and the buttons, replacing any earlier
  *          embed or image
  */
 export const cardReply = (
   png: Buffer,
   name: string,
   rows: ActionRowBuilder<MessageActionRowComponentBuilder>[],
+  more: readonly { attachment: Buffer; name: string }[] = [],
 ) => ({
   content: "",
   embeds: [],
   attachments: [],
-  files: [{ attachment: png, name }],
+  files: [{ attachment: png, name }, ...more],
   components: rows,
 });

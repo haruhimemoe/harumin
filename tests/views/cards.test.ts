@@ -9,20 +9,28 @@
  */
 
 import {
+  compareCardSchema,
+  leaderboardCardSchema,
+  mapCardSchema,
   profileCardSchema,
   scoreCardSchema,
   scoreListCardSchema,
+  simulateCardSchema,
 } from "@haruhimemoe/harumin-config";
 import { describe, expect, it, vi } from "vitest";
 import { createCards } from "../../src/services/cards.ts";
 import {
   toCardPlayer,
   toCardScore,
+  toCompareCard,
+  toLeaderboardCard,
+  toMapCard,
   toProfileCard,
   toScoreCard,
   toScoreListCard,
+  toSimulateCard,
 } from "../../src/views/cards.ts";
-import { makeProfile, makeScore } from "../helpers.ts";
+import { makeMap, makeProfile, makeScore } from "../helpers.ts";
 
 const PP = { pp: 150, fcPp: 180, fcAccuracy: 98.4, stars: 6.1, maxCombo: 132 };
 
@@ -107,6 +115,62 @@ describe("card views", () => {
     expect(list.pages).toBe(1);
     expect(list.rows[0]?.score.hits[0]?.label).toBe("MAX");
     expect(scoreListCardSchema.safeParse(list).success).toBe(true);
+  });
+
+  it("puts the full-combo pp on list rows that have rosu's numbers", () => {
+    const choke = makeScore({ statistics: { great: 100, miss: 2 }, perfectCombo: false });
+    const list = toScoreListCard([{ place: 1, score: choke, pp: PP }], {
+      profile: makeProfile(),
+      ruleset: "osu",
+      title: "Without chokes",
+      note: null,
+      page: 1,
+      pages: 1,
+    });
+    expect(list.rows[0]?.score.fcPp).toBe(180);
+  });
+
+  it("makes a map card with the mods' speed, and no AR or OD where the ruleset has none", () => {
+    const map = makeMap({ lengthSeconds: 150, bpm: 200 });
+    const attrs = { stars: 7, maxCombo: 900, ar: 10.3, od: 10, cs: 4, hp: 6, clockRate: 1.5 };
+    const card = toMapCard(map, {
+      mods: [{ acronym: "DT" }],
+      stars: null,
+      attrs,
+      pps: [{ accuracy: 100, pp: 500 }],
+    });
+    expect(card).toMatchObject({ lengthSeconds: 100, bpm: 300, ar: 10.3, maxCombo: 900 });
+    expect(card.map.stars).toBe(7);
+    expect(mapCardSchema.safeParse(card).success).toBe(true);
+    const bare = { mods: [], stars: null, attrs: null, pps: null };
+    const mania = toMapCard(makeMap({ mode: "mania" }), bare);
+    expect(mania.ar).toBeNull();
+    expect(mania.pps).toEqual([]);
+    expect(toMapCard(makeMap({ mode: "fruits" }), bare).od).toBeNull();
+  });
+
+  it("makes leaderboard, simulate and compare cards that parse", () => {
+    const map = makeMap();
+    const board = toLeaderboardCard(map, [makeScore(), makeScore({ user: null })], {
+      start: 10,
+      page: 2,
+      pages: 10,
+      filter: null,
+    });
+    expect(board.rows.map((row) => row.place)).toEqual([11, 12]);
+    expect(board.rows[1]?.username).toBe("?");
+    expect(leaderboardCardSchema.safeParse(board).success).toBe(true);
+    const sim = toSimulateCard(
+      map,
+      { pp: 300, stars: 6, maxCombo: 500 },
+      { mods: [{ acronym: "HD" }], combo: 9999 },
+    );
+    expect(sim).toMatchObject({ accuracy: 100, combo: 500, misses: 0 });
+    expect(simulateCardSchema.safeParse(sim).success).toBe(true);
+    const side = { profile: makeProfile(), top: [makeScore()] };
+    const compare = toCompareCard(side, { ...side, top: [] }, "osu");
+    expect(compare.b.topPp).toBeNull();
+    expect(compareCardSchema.safeParse(compare).success).toBe(true);
   });
 });
 
