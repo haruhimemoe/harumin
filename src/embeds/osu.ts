@@ -34,6 +34,7 @@ import {
   RULESET_NAMES,
   truncate,
 } from "../utils/format.ts";
+import type { Session } from "../views/session.ts";
 import { card } from "./common.ts";
 
 /** A player shown as an embed author: name, flag, rank, avatar, profile link. */
@@ -144,11 +145,17 @@ export const scoreEmbed = (
     player?: AuthorPlayer | undefined;
     heading?: string | undefined;
     tries?: number | undefined;
+    session?: Session | undefined;
   },
 ): APIEmbed => {
   const player: AuthorPlayer | null = options.player ?? (score.user ? { ...score.user } : null);
   const lines = scoreLines(score, options.pp);
   if (options.tries && options.tries > 1) lines.push(`Try #${options.tries}`);
+  if (options.session && options.session.today > 1) {
+    lines.push(
+      [`${options.session.today} today`, options.session.note].filter(Boolean).join(" · "),
+    );
+  }
   const setId = score.beatmap?.beatmapsetId ?? score.beatmapset?.beatmapsetId;
   return card({
     ...(player ? { author: playerAuthor(player) } : {}),

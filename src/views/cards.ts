@@ -25,6 +25,7 @@ import type {
 import type { BeatmapDetail, OsuMod, OsuScore, OsuUserProfile } from "@haruhimemoe/osu";
 import type { AccuracyPp, MapAttributes, ScorePp } from "../services/pp.ts";
 import { completion } from "../utils/format.ts";
+import type { Session } from "./session.ts";
 
 /** Each ruleset's judgements, in order, with the label a card prints. */
 const HIT_LABELS: Readonly<Record<Ruleset, readonly (readonly [string, string])[]>> = {
@@ -174,8 +175,8 @@ export const toCardScore = (score: OsuScore, pp: ScorePp | null): CardScore => {
 /**
  * @function toScoreCard
  * @param score {OsuScore} the score
- * @param options {{ profile; ruleset; pp; heading; tries }} who, which ruleset, rosu's numbers,
- *        the line above the map, and which try in a row (shown from 2)
+ * @param options {{ profile; ruleset; pp; heading; tries; session }} who, which ruleset, rosu's
+ *        numbers, the line above the map, which try in a row (shown from 2), and the 24 h session
  * @returns {ScoreCard} /recent's card
  */
 export const toScoreCard = (
@@ -186,6 +187,7 @@ export const toScoreCard = (
     pp: ScorePp | null;
     heading: string;
     tries: number;
+    session?: Session | undefined;
   },
 ): ScoreCard => ({
   ruleset: options.ruleset,
@@ -193,6 +195,9 @@ export const toScoreCard = (
   heading: options.heading,
   score: toCardScore(score, options.pp),
   tries: options.tries > 1 ? options.tries : null,
+  ...(options.session && (options.session.today > 1 || options.session.note)
+    ? { session: options.session }
+    : {}),
 });
 
 /**

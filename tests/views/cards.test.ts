@@ -100,7 +100,22 @@ describe("card views", () => {
       tries: 1,
     });
     expect(score.tries).toBeNull();
+    expect(score.session).toBeUndefined();
     expect(scoreCardSchema.safeParse(score).success).toBe(true);
+    const options = {
+      profile: makeProfile(),
+      ruleset: "osu" as const,
+      pp: null,
+      heading: "x",
+      tries: 1,
+    };
+    const lone = toScoreCard(makeScore(), { ...options, session: { today: 1, note: null } });
+    expect(lone.session).toBeUndefined();
+    const busy = toScoreCard(makeScore(), {
+      ...options,
+      session: { today: 23, note: "best of 23" },
+    });
+    expect(scoreCardSchema.parse(busy).session).toEqual({ today: 23, note: "best of 23" });
     const list = toScoreListCard(
       [1, 2, 3].map((place) => ({ place, score: makeScore({ ruleset: "mania" }) })),
       {
