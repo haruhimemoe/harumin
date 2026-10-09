@@ -213,7 +213,7 @@ export const practice: Command = {
       return void (await fail(interaction, "pools found nothing close enough. Try other stars."));
     const { target, maps } = result;
     const name = `${profile.username}'s ${target.bucket} practice`;
-    const subtitle = `${target.bucket} · ${target.stars.toFixed(2)}★ · like your top plays`;
+    const subtitle = `${target.bucket} · ${target.stars.toFixed(2)} stars · like your top plays`;
     const packUrl = `${LINKS.packs}/k#${encodePackKey({
       name,
       slots: maps.map((map, i) => ({ mod: target.bucket, index: i + 1, beatmapId: map.beatmapId })),

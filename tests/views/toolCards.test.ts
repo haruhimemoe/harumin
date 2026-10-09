@@ -180,7 +180,7 @@ describe("toPracticeCard", () => {
   it("labels slots by bucket and spans the stars", () => {
     const card = toPracticeCard({
       name: "peppy's HR practice",
-      subtitle: "HR · 6.4★ · like your top plays",
+      subtitle: "HR · 6.40 stars · like your top plays",
       bucket: "HR",
       maps: [
         { beatmapId: 1, title: "A - B [C]", stars: 6.3, lengthSeconds: 90.4 },
