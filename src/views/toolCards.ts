@@ -131,6 +131,40 @@ export const toPoolCard = ({
   };
 };
 
+/** What /practice's card is drawn from. */
+export type PracticeCardInput = {
+  name: string;
+  subtitle: string;
+  bucket: string;
+  maps: readonly { beatmapId: number; title: string; stars: number; lengthSeconds: number }[];
+};
+
+/**
+ * @function toPracticeCard
+ * @param input {PracticeCardInput} the pick, stars already under the bucket's mods
+ * @returns {PoolCard} the pool card with source "practice", slots labelled HR1, HR2...
+ */
+export const toPracticeCard = ({ name, subtitle, bucket, maps }: PracticeCardInput): PoolCard => {
+  const stars = maps.map((map) => map.stars);
+  return {
+    source: "practice",
+    name: cut(name, 128),
+    subtitle: cut(subtitle, 160),
+    mapCount: maps.length,
+    stars: stars.length ? { min: Math.min(...stars), max: Math.max(...stars) } : null,
+    slots: maps.slice(0, MAX_POOL_SLOTS).map((map, i) => ({
+      label: cut(`${bucket}${i + 1}`, 8),
+      mod: cut(bucket, 4),
+      title: cut(map.title, 200),
+      beatmapId: map.beatmapId,
+      stars: Math.max(0, map.stars),
+      lengthSeconds: Math.max(0, Math.round(map.lengthSeconds)),
+      check: null,
+    })),
+    note: null,
+  };
+};
+
 /**
  * @function toServerCard
  * @param guild {{ id: string; name: string; icon: string | null }} the server

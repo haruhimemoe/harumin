@@ -1,3 +1,4 @@
+| `/practice` | Maps like your top plays, a bit harder, from pools.haruhime.moe, with a pack link |
 # harumin
 
 An osu! Discord bot from [haruhime.moe](https://haruhime.moe). Slash commands only.

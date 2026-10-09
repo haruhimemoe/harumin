@@ -2,7 +2,8 @@
  * @file src/services/apps.ts
  * @desc Reading the other haruhime apps through their public routes, never their databases:
  *       a pack from packs.haruhime.moe (GET /api/packs/{slug}) and a pool from pools.haruhime.moe
- *       (GET /api/pools/{id}). Only what anyone signed out may see comes back; private and hidden
+ *       (GET /api/pools/{id}). /practice asks pools' internal similar-maps route with a bearer secret
+ *       (never cached here; the command caches its pick). Only what anyone signed out may see comes back; private and hidden
  *       ones answer 404 and read as null. Answers are cached for two minutes.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
@@ -32,6 +33,24 @@ const packSchema = z.object({
   }),
 });
 
+const similarSchema = z.object({
+  sets: z.array(
+    z.object({
+      artist: z.string(),
+      title: z.string(),
+      diffs: z.array(
+        z.object({
+          id: z.number().int().positive(),
+          version: z.string(),
+          stars: z.number(),
+          length: z.number(),
+          similarity: z.number(),
+        }),
+      ),
+    }),
+  ),
+});
+
 const poolSchema = z.object({
   pool: z.object({
     id: z.string(),
@@ -52,9 +71,23 @@ export type AppPack = z.infer<typeof packSchema>["pack"] & { url: string };
 /** A pool as pools.haruhime.moe sends it. */
 export type AppPool = z.infer<typeof poolSchema>["pool"] & { url: string };
 
+/** A map pools offered as like a seed (the picker's Candidate). */
+export type SimilarMap = {
+  beatmapId: number;
+  title: string;
+  stars: number;
+  lengthSeconds: number;
+  similarity: number;
+};
+
+/** What /practice asks pools for: a lens and a star range. */
+export type SimilarQuery = { mods: "NM" | "HD" | "HR" | "DT"; min: number; max: number };
+
 /** The readers. */
 export type Apps = {
   getPack: (slug: string) => Promise<AppPack | null>;
+  /** Maps like a seed, from pools' internal route; null when unset or unavailable. */
+  similar: (beatmapId: number, query: SimilarQuery) => Promise<SimilarMap[] | null>;
   getPool: (id: string) => Promise<AppPool | null>;
 };
 
@@ -62,6 +95,8 @@ export type Apps = {
 export type AppsOptions = {
   packsUrl?: string;
   poolsUrl?: string;
+  /** pools' HARUMIN_SERVICE_SECRET (the bot's POOLS_SERVICE_SECRET); similar() is null without it. */
+  poolsSecret?: string;
   fetch?: (url: string, init?: RequestInit) => Promise<Response>;
   now?: () => number;
 };
@@ -74,6 +109,7 @@ export type AppsOptions = {
 export const createApps = ({
   packsUrl = "https://packs.haruhime.moe",
   poolsUrl = "https://pools.haruhime.moe",
+  poolsSecret,
   fetch = globalThis.fetch,
   now = Date.now,
 }: AppsOptions = {}): Apps => {
@@ -107,6 +143,38 @@ export const createApps = ({
       const pool = body ? { ...body.pool, url: `${poolsUrl}/pools/${body.pool.id}` } : null;
       cache.set(key, pool);
       return pool;
+    },
+    async similar(beatmapId, { mods, min, max }) {
+      if (!poolsSecret) return null;
+      const round = (n: number) => String(Math.round(n * 100) / 100);
+      const query = new URLSearchParams({
+        mods,
+        sr: `${round(min)}-${round(max)}`,
+        status: "leaderboard",
+      });
+      try {
+        const response = await fetch(`${poolsUrl}/api/internal/similar/${beatmapId}?${query}`, {
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${poolsSecret}`,
+            "User-Agent": USER_AGENT,
+          },
+          signal: AbortSignal.timeout(10_000),
+        });
+        if (!response.ok) return null;
+        const body = similarSchema.parse(await response.json());
+        return body.sets.flatMap((set) =>
+          set.diffs.map((diff) => ({
+            beatmapId: diff.id,
+            title: `${set.artist} - ${set.title} [${diff.version}]`,
+            stars: diff.stars,
+            lengthSeconds: diff.length,
+            similarity: diff.similarity,
+          })),
+        );
+      } catch {
+        return null;
+      }
     },
   };
 };

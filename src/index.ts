@@ -88,7 +88,7 @@ const services: Services = {
     beforeFetch: () => fileBudget.acquire(10_000),
   }),
   tracks: createTracks(db, osu, { perMinute: env.OSU_RATE_PER_MINUTE, log }),
-  apps: createApps(),
+  apps: createApps(env.POOLS_SERVICE_SECRET ? { poolsSecret: env.POOLS_SERVICE_SECRET } : {}),
   cards: createCards({ siteUrl: env.SITE_URL, token: env.HARUMIN_SERVICE_TOKEN, log }),
   animate: createAnimator({ log }),
   startedAt: Date.now(),

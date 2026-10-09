@@ -20,6 +20,7 @@ import { describe, expect, it } from "vitest";
 import {
   toMatchCostCard,
   toPoolCard,
+  toPracticeCard,
   toServerCard,
   toTracksCard,
 } from "../../src/views/toolCards.ts";
@@ -172,5 +173,30 @@ describe("tool cards", () => {
       () => undefined,
     );
     expect(tracksCardSchema.parse(tracks).rows[0]).toMatchObject({ channel: "unknown-channel" });
+  });
+});
+
+describe("toPracticeCard", () => {
+  it("labels slots by bucket and spans the stars", () => {
+    const card = toPracticeCard({
+      name: "peppy's HR practice",
+      subtitle: "HR · 6.4★ · like your top plays",
+      bucket: "HR",
+      maps: [
+        { beatmapId: 1, title: "A - B [C]", stars: 6.3, lengthSeconds: 90.4 },
+        { beatmapId: 2, title: "D - E [F]", stars: 6.5, lengthSeconds: 120 },
+      ],
+    });
+    expect(poolCardSchema.parse(card)).toEqual(card);
+    expect(card).toMatchObject({
+      source: "practice",
+      mapCount: 2,
+      stars: { min: 6.3, max: 6.5 },
+      note: null,
+    });
+    expect(card.slots.map((slot) => [slot.label, slot.mod, slot.lengthSeconds])).toEqual([
+      ["HR1", "HR", 90],
+      ["HR2", "HR", 120],
+    ]);
   });
 });

@@ -20,6 +20,7 @@ import { nochoke } from "./commands/nochoke.ts";
 import { osu } from "./commands/osu.ts";
 import { pack } from "./commands/pack.ts";
 import { pool } from "./commands/pool.ts";
+import { practice } from "./commands/practice.ts";
 import { recent } from "./commands/recent.ts";
 import { score } from "./commands/score.ts";
 import { server } from "./commands/server.ts";
@@ -44,6 +45,7 @@ export const COMMANDS: readonly Command[] = Object.freeze([
   matchcost,
   pack,
   pool,
+  practice,
   link,
   help,
   info,

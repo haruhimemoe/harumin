@@ -30,6 +30,8 @@ export const envSchema = z.object({
   SERVICE_PORT: z.coerce.number().int().min(1).max(65535).default(8787),
   CACHE_DIR: z.string().min(1).default(".cache/osu"),
   TOPGG_TOKEN: z.preprocess(blankToUndefined, z.string().min(1).optional()),
+  /** pools' HARUMIN_SERVICE_SECRET, for /practice; unset, /practice says pools didn't answer. */
+  POOLS_SERVICE_SECRET: z.preprocess(blankToUndefined, z.string().min(32).optional()),
 });
 
 /** The parsed environment. */

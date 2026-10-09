@@ -112,6 +112,46 @@ describe("apps", () => {
   });
 });
 
+describe("apps.similar", () => {
+  const answer = {
+    id: 75,
+    sets: [
+      {
+        setId: 1,
+        artist: "A",
+        title: "T",
+        diffs: [
+          { id: 11, version: "Hard", stars: 5.9, length: 100, similarity: 90 },
+          { id: 12, version: "Insane", stars: 6.3, length: 110, similarity: 70 },
+        ],
+      },
+    ],
+  };
+
+  it("sends the bearer, asks the lens and range, and maps diffs to candidates", async () => {
+    const fetch = vi.fn(async (_url: string, _init?: RequestInit) => Response.json(answer));
+    const apps = createApps({ fetch, poolsSecret: "s".repeat(40) });
+    const out = await apps.similar(75, { mods: "HR", min: 5.6, max: 6.4 });
+    const [url, init] = fetch.mock.calls[0] ?? [];
+    expect(url).toBe(
+      "https://pools.haruhime.moe/api/internal/similar/75?mods=HR&sr=5.6-6.4&status=leaderboard",
+    );
+    expect(new Headers(init?.headers).get("Authorization")).toBe(`Bearer ${"s".repeat(40)}`);
+    expect(out).toEqual([
+      { beatmapId: 11, title: "A - T [Hard]", stars: 5.9, lengthSeconds: 100, similarity: 90 },
+      { beatmapId: 12, title: "A - T [Insane]", stars: 6.3, lengthSeconds: 110, similarity: 70 },
+    ]);
+  });
+
+  it("is null without a secret or on a failed answer", async () => {
+    const fetch = vi.fn(async () => new Response(null, { status: 503 }));
+    expect(await createApps({ fetch }).similar(75, { mods: "NM", min: 1, max: 2 })).toBeNull();
+    expect(fetch).not.toHaveBeenCalled();
+    const apps = createApps({ fetch, poolsSecret: "s".repeat(40) });
+    expect(await apps.similar(75, { mods: "NM", min: 1, max: 2 })).toBeNull();
+  });
+});
+
 describe("beatmap files", () => {
   let dir = "";
   afterEach(async () => {
