@@ -200,3 +200,18 @@ describe("toPracticeCard", () => {
     ]);
   });
 });
+
+describe("toPoolCard fromtop", () => {
+  it("draws a draft with its short-bucket note", () => {
+    const card = toPoolCard({
+      source: "fromtop",
+      name: "peppy's draft pool",
+      subtitle: "Small · from your top 100",
+      slots: [{ mod: "NM", index: 1, beatmapId: 75 }],
+      meta: new Map(),
+      note: "HD short by 2",
+    });
+    expect(poolCardSchema.parse(card)).toEqual(card);
+    expect(card).toMatchObject({ source: "fromtop", note: "HD short by 2", mapCount: 1 });
+  });
+});

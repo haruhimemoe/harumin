@@ -1,9 +1,10 @@
 /**
  * @file src/commands/pool.ts
- * @desc /pool view|check|parse. view: a pool's card from pools.haruhime.moe. check: every map
+ * @desc /pool view|check|parse|fromtop. view: a pool's card from pools.haruhime.moe. check: every map
  *       against osu!'s content usage rules (a pool link, or a pack link or key). parse: opens a
  *       form to paste a pool ("NM1 129891" lines, links or ids) and reads it back as slots, with
- *       a pack key to open it on packs.
+ *       a pack key to open it on packs. fromtop: a draft pool from the player's top 100
+ *       (src/views/fromtop.ts), with a pack link and pools' /new#<key> to build it.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
  * @modified Thu Oct 8, 2026
@@ -32,6 +33,7 @@ import { LINKS } from "../constants.ts";
 import { bucketCounts, parsedPoolEmbed } from "../embeds/tools.ts";
 import { refFromUrl } from "../links/index.ts";
 import type { Command, Services } from "../types.ts";
+import { draftFromTop, FROMTOP_SIZES, type FromtopSize, shortBuckets } from "../views/fromtop.ts";
 import { toPoolCard } from "../views/toolCards.ts";
 import {
   type FoundPool,
@@ -42,7 +44,14 @@ import {
   renderPoolCard,
   renderPoolCheck,
 } from "../views/tools.ts";
-import { type CardMessage, fail, imageOrEmbed, linkButtons } from "./shared.ts";
+import {
+  addPlayerOptions,
+  type CardMessage,
+  fail,
+  imageOrEmbed,
+  linkButtons,
+  loadPlayer,
+} from "./shared.ts";
 
 const POOL_ID = /^[A-Za-z0-9_-]{6,40}$/;
 
@@ -91,6 +100,83 @@ const answer = async (
   await interaction.editReply(await render(found));
 };
 
+/** pools reads a draft from /new#<key>; a link past this length is left off. */
+const MAX_BUILD_URL = 512;
+
+/**
+ * @function buildOnPools
+ * @param packUrl {string} a packs /k#<key> link
+ * @returns {string} pools' /new#<key>, or the plain /new when that would be too long
+ */
+const buildOnPools = (packUrl: string): string => {
+  const url = `${LINKS.pools}/new#${packUrl.split("#")[1] ?? ""}`;
+  return url.length <= MAX_BUILD_URL ? url : `${LINKS.pools}/new`;
+};
+
+const SIZE_NAMES: Readonly<Record<FromtopSize, string>> = {
+  small: "Small",
+  medium: "Medium",
+  large: "Large",
+};
+
+/**
+ * @function fromtop
+ * @param interaction {ChatInputCommandInteraction} /pool fromtop
+ * @param s {Services} services
+ * @returns {Promise<void>} a draft pool card from the player's top 100, with pack and pools links
+ */
+const fromtop = async (interaction: ChatInputCommandInteraction, s: Services): Promise<void> => {
+  await interaction.deferReply();
+  const loaded = await loadPlayer(interaction, s);
+  if (!loaded) return;
+  const { profile, ruleset } = loaded;
+  const raw = interaction.options.getString("size");
+  const size: FromtopSize = (FROMTOP_SIZES as readonly string[]).includes(raw ?? "")
+    ? (raw as FromtopSize)
+    : "medium";
+  const scores = await s.osu.getUserScores(profile.osuId, "best", { ruleset, limit: 100 });
+  const draft = draftFromTop(
+    scores.map((score) => ({
+      beatmapId: score.beatmapId,
+      mods: score.mods.map((mod) => mod.acronym),
+      pp: score.pp ?? 0,
+    })),
+    size,
+  );
+  if (draft.length < 5)
+    return void (await fail(interaction, "Not enough top plays to draft a pool."));
+  const slots = draft.map(({ mod, index, beatmapId }) => ({ mod, index, beatmapId }));
+  const name = `${profile.username}'s draft pool`;
+  const short = shortBuckets(draft, size);
+  const note = short.length
+    ? short.map(({ mod, short: n }) => `${mod} short by ${n}`).join(" · ")
+    : null;
+  const packUrl = `${LINKS.packs}/k#${encodePackKey({ name, slots })}`;
+  const png = await s.cards.draw(
+    "pool",
+    toPoolCard({
+      source: "fromtop",
+      name,
+      subtitle: `${SIZE_NAMES[size]} · from your top 100`,
+      slots,
+      meta: await metaFor(s, slots),
+      note,
+    }),
+  );
+  await interaction.editReply(
+    imageOrEmbed(
+      png,
+      "pool.png",
+      () => parsedPoolEmbed(slots, [], packUrl),
+      linkButtons([
+        { label: "Open as a pack", url: packUrl },
+        // pools is osu!standard only.
+        ...(ruleset === "osu" ? [{ label: "Build it on pools", url: buildOnPools(packUrl) }] : []),
+      ]),
+    ),
+  );
+};
+
 export const pool: Command = {
   category: "haruhime",
   data: new SlashCommandBuilder()
@@ -121,11 +207,29 @@ export const pool: Command = {
     .addSubcommand((sub) =>
       sub.setName("parse").setDescription("Paste a pool and get it back as slots"),
     )
+    .addSubcommand((sub) =>
+      addPlayerOptions(
+        sub
+          .setName("fromtop")
+          .setDescription("Draft a tournament pool from your top plays")
+          .addStringOption((option) =>
+            option
+              .setName("size")
+              .setDescription("Pool size (default medium)")
+              .addChoices(
+                { name: "small (14 maps)", value: "small" },
+                { name: "medium (18 maps)", value: "medium" },
+                { name: "large (22 maps)", value: "large" },
+              ),
+          ),
+      ),
+    )
     .toJSON(),
   async execute(interaction, s) {
     const sub = interaction.options.getSubcommand();
     if (sub === "view") return answer(interaction, s, (found) => renderPoolCard(s, found));
     if (sub === "check") return answer(interaction, s, (found) => renderPoolCheck(s, found));
+    if (sub === "fromtop") return fromtop(interaction, s);
     await interaction.showModal(
       new ModalBuilder()
         .setCustomId("pool:parse")
@@ -197,7 +301,7 @@ export const pool: Command = {
         () => parsedPoolEmbed(slots, errors, url),
         linkButtons([
           ...(url ? [{ label: "Open as a pack", url }] : []),
-          { label: "Build it on pools", url: `${LINKS.pools}/new` },
+          { label: "Build it on pools", url: url ? buildOnPools(url) : `${LINKS.pools}/new` },
         ]),
       ),
     );

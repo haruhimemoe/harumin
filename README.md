@@ -1,3 +1,4 @@
+| `/pool fromtop` | A draft tournament pool from your top plays, to open on packs or build on pools |
 | `/practice` | Maps like your top plays, a bit harder, from pools.haruhime.moe, with a pack link |
 # harumin
 
