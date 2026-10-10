@@ -1,13 +1,15 @@
 /**
  * @file src/commands/pool.ts
- * @desc /pool view|check|parse|fromtop. view: a pool's card from pools.haruhime.moe. check: every map
+ * @desc /pool view|check|parse|fromtop|me. view: a pool's card from pools.haruhime.moe. check: every map
  *       against osu!'s content usage rules (a pool link, or a pack link or key). parse: opens a
  *       form to paste a pool ("NM1 129891" lines, links or ids) and reads it back as slots, with
  *       a pack key to open it on packs. fromtop: a draft pool from the player's top 100
- *       (src/views/fromtop.ts), with a pack link and pools' /new#<key> to build it.
+ *       (src/views/fromtop.ts), with a pack link and pools' /new#<key> to build it. me: the
+ *       player's best score on each map (src/views/poolMe.ts, kept 10 minutes), with a pack of
+ *       the maps they haven't played.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Thu Oct 8, 2026
+ * @modified Fri Oct 9, 2026
  */
 
 import {
@@ -30,10 +32,13 @@ import {
   TextInputStyle,
 } from "discord.js";
 import { LINKS } from "../constants.ts";
+import { card } from "../embeds/common.ts";
 import { bucketCounts, parsedPoolEmbed } from "../embeds/tools.ts";
 import { refFromUrl } from "../links/index.ts";
+import { createTtlCache } from "../services/cache.ts";
 import type { Command, Services } from "../types.ts";
 import { draftFromTop, FROMTOP_SIZES, type FromtopSize, shortBuckets } from "../views/fromtop.ts";
+import { loadMine, type Mine, summarizeMine } from "../views/poolMe.ts";
 import { toPoolCard } from "../views/toolCards.ts";
 import {
   type FoundPool,
@@ -84,20 +89,38 @@ const findAny = async (
   return POOL_ID.test(input) ? findPool(s, input) : "unreadable";
 };
 
+/**
+ * @function findOrFail
+ * @param interaction {ChatInputCommandInteraction} a deferred /pool command with a `pool` option
+ * @param s {Services} services
+ * @returns {Promise<FoundPool | null>} the pool, or null after telling the user why not
+ */
+const findOrFail = async (
+  interaction: ChatInputCommandInteraction,
+  s: Services,
+): Promise<FoundPool | null> => {
+  const input = interaction.options.getString("pool")?.trim() ?? null;
+  const found = await findAny(s, input, interaction.channelId);
+  if (found && typeof found === "object") return found;
+  await fail(
+    interaction,
+    found === "none"
+      ? "Which pool? Pass `pool`, or link one here first."
+      : found === "unreadable"
+        ? "That isn't a pool link, id or pack key."
+        : "No public pool there.",
+  );
+  return null;
+};
+
 const answer = async (
   interaction: ChatInputCommandInteraction,
   s: Services,
   render: (found: FoundPool) => Promise<CardMessage>,
 ) => {
-  const input = interaction.options.getString("pool")?.trim() ?? null;
   await interaction.deferReply();
-  const found = await findAny(s, input, interaction.channelId);
-  if (found === "none")
-    return void (await fail(interaction, "Which pool? Pass `pool`, or link one here first."));
-  if (found === "unreadable")
-    return void (await fail(interaction, "That isn't a pool link, id or pack key."));
-  if (!found) return void (await fail(interaction, "No public pool there."));
-  await interaction.editReply(await render(found));
+  const found = await findOrFail(interaction, s);
+  if (found) await interaction.editReply(await render(found));
 };
 
 /** pools reads a draft from /new#<key>; a link past this length is left off. */
@@ -177,6 +200,87 @@ const fromtop = async (interaction: ChatInputCommandInteraction, s: Services): P
   );
 };
 
+type MineResult = { mine: Map<number, Mine | null>; busy: boolean };
+const mines = createTtlCache<string, MineResult>(10 * 60_000, 500);
+
+/**
+ * @function me
+ * @param interaction {ChatInputCommandInteraction} /pool me
+ * @param s {Services} services
+ * @returns {Promise<void>} the pool's card with the player's best score on each map
+ */
+const me = async (interaction: ChatInputCommandInteraction, s: Services): Promise<void> => {
+  await interaction.deferReply();
+  const found = await findOrFail(interaction, s);
+  if (!found) return;
+  const loaded = await loadPlayer(interaction, s);
+  if (!loaded) return;
+  const { profile, ruleset } = loaded;
+  const key = `${profile.osuId}:${found.url}:${ruleset}`;
+  let result = mines.get(key);
+  if (!result) {
+    const ids = [...new Set(found.slots.map((slot) => slot.beatmapId))];
+    result = await loadMine(s, profile.osuId, ids, ruleset);
+    // A busy osu! leaves gaps; only a full answer is kept.
+    if (!result.busy) mines.set(key, result);
+  }
+  const { mine, busy } = result;
+  const note = [
+    summarizeMine(found.slots.map((slot) => ({ mine: mine.get(slot.beatmapId) }))),
+    busy ? "some slots skipped, osu! is busy" : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const drawn = toPoolCard({
+    source: "me",
+    name: found.name,
+    subtitle: `${profile.username}'s scores`,
+    slots: found.slots,
+    meta: await metaFor(s, found.slots),
+    mine,
+    note,
+  });
+  const unplayed = found.slots.filter((slot) => !mine.get(slot.beatmapId));
+  let unplayedUrl: string | null = null;
+  if (unplayed.length) {
+    try {
+      unplayedUrl = `${LINKS.packs}/k#${encodePackKey({
+        name: `${found.name} (unplayed)`.slice(0, 64),
+        slots: unplayed,
+      })}`;
+    } catch {
+      unplayedUrl = null;
+    }
+  }
+  const png = await s.cards.draw("pool", drawn);
+  await interaction.editReply(
+    imageOrEmbed(
+      png,
+      "pool.png",
+      () =>
+        card({
+          title: found.name,
+          url: found.url,
+          description: [
+            `-# ${profile.username}'s scores · ${note}`,
+            ...drawn.slots.map((slot) => {
+              const mineLine = slot.mine
+                ? `${slot.mine.grade} · ${slot.mine.accuracy.toFixed(2)}%${slot.mine.pp !== null ? ` · ${Math.round(slot.mine.pp)}pp` : ""}`
+                : "not played";
+              return `\`${slot.label}\` ${slot.title ?? `#${slot.beatmapId}`} · ${mineLine}`;
+            }),
+          ]
+            .join("\n")
+            .slice(0, 4000),
+        }),
+      linkButtons([
+        { label: found.kind === "pack" ? "Open on packs" : "Open on pools", url: found.url },
+        ...(unplayedUrl ? [{ label: "Open the unplayed as a pack", url: unplayedUrl }] : []),
+      ]),
+    ),
+  );
+};
+
 export const pool: Command = {
   category: "haruhime",
   data: new SlashCommandBuilder()
@@ -224,12 +328,26 @@ export const pool: Command = {
           ),
       ),
     )
+    .addSubcommand((sub) =>
+      addPlayerOptions(
+        sub
+          .setName("me")
+          .setDescription("Your best score on each map of a pool")
+          .addStringOption((option) =>
+            option
+              .setName("pool")
+              .setDescription("Pool link, pack link or key (default: the last one here)")
+              .setMaxLength(4000),
+          ),
+      ),
+    )
     .toJSON(),
   async execute(interaction, s) {
     const sub = interaction.options.getSubcommand();
     if (sub === "view") return answer(interaction, s, (found) => renderPoolCard(s, found));
     if (sub === "check") return answer(interaction, s, (found) => renderPoolCheck(s, found));
     if (sub === "fromtop") return fromtop(interaction, s);
+    if (sub === "me") return me(interaction, s);
     await interaction.showModal(
       new ModalBuilder()
         .setCustomId("pool:parse")

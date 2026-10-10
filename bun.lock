@@ -6,7 +6,7 @@
       "name": "harumin",
       "dependencies": {
         "@haruhimemoe/compliance": "0.1.1",
-        "@haruhimemoe/harumin-config": "0.9.0",
+        "@haruhimemoe/harumin-config": "0.10.0",
         "@haruhimemoe/osu": "0.7.0",
         "@haruhimemoe/pool": "0.3.0",
         "discord.js": "14.27.0",
@@ -67,7 +67,7 @@
 
     "@haruhimemoe/compliance": ["@haruhimemoe/compliance@0.1.1", "", {}, "sha512-a6beDNLA7M3mX5nb5yz1XHNexBt9cc3o56c4kL3Th+NgK9QQGVcykLpDkasqz8VyUbrsvIsUkd55ndIMwSeTrg=="],
 
-    "@haruhimemoe/harumin-config": ["@haruhimemoe/harumin-config@0.9.0", "", { "peerDependencies": { "zod": "^4.0.16" } }, "sha512-ZJHEfS7IB7VImBvJlSSKS40QzfaHHFeR1uGio+r+m+jw3gPuOKpsIpgNmPHplg5W57OAoT14TWf55WbsE/1qlw=="],
+    "@haruhimemoe/harumin-config": ["@haruhimemoe/harumin-config@0.10.0", "", { "peerDependencies": { "zod": "^4.0.16" } }, "sha512-mopugj1S/UPQoxt3LUDOPEFzjF39kKtLHhjr366J/y0bI7xdwgDvanzL6U9G8DDbwTgYGCUDRmGlgfbn23fBbg=="],
 
     "@haruhimemoe/osu": ["@haruhimemoe/osu@0.7.0", "", { "peerDependencies": { "zod": "^4.0.16" } }, "sha512-eKO46jp7J6UnQTtQwXzpw8s6s/RUw7x+H8VPbToDuwlNL/iHW3NkO2z0dkqIzA33LfsRBT4XPNl4R4KKrsk5MQ=="],
 

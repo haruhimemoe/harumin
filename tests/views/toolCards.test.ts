@@ -215,3 +215,23 @@ describe("toPoolCard fromtop", () => {
     expect(card).toMatchObject({ source: "fromtop", note: "HD short by 2", mapCount: 1 });
   });
 });
+
+describe("toPoolCard me", () => {
+  it("puts the player's score on each slot, null when not played", () => {
+    const card = toPoolCard({
+      source: "me",
+      name: "OWC QF",
+      slots: [
+        { mod: "NM", index: 1, beatmapId: 75 },
+        { mod: "HD", index: 1, beatmapId: 76 },
+      ],
+      meta: new Map(),
+      mine: new Map([[75, { grade: "S", accuracy: 98.1, pp: 312 }]]),
+    });
+    expect(poolCardSchema.parse(card)).toEqual(card);
+    expect(card.slots.map((slot) => slot.mine)).toEqual([
+      { grade: "S", accuracy: 98.1, pp: 312 },
+      null,
+    ]);
+  });
+});

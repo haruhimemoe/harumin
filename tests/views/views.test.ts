@@ -217,7 +217,13 @@ describe("export", () => {
     expect(version).toMatch(/^\d+\.\d+\.\d+$/);
     expect(commands.map((c) => c.name)).not.toContain("eval");
     const pool = commands.find((c) => c.name === "pool");
-    expect(pool?.subcommands.map((sub) => sub.name)).toEqual(["view", "check", "parse", "fromtop"]);
+    expect(pool?.subcommands.map((sub) => sub.name)).toEqual([
+      "view",
+      "check",
+      "parse",
+      "fromtop",
+      "me",
+    ]);
     const top = commands.find((c) => c.name === "top");
     expect(top?.options.find((o) => o.name === "mode")?.choices).toEqual([
       "osu!",

@@ -1,5 +1,3 @@
-| `/pool fromtop` | A draft tournament pool from your top plays, to open on packs or build on pools |
-| `/practice` | Maps like your top plays, a bit harder, from pools.haruhime.moe, with a pack link |
 # harumin
 
 An osu! Discord bot from [haruhime.moe](https://haruhime.moe). Slash commands only.
@@ -24,6 +22,9 @@ An osu! Discord bot from [haruhime.moe](https://haruhime.moe). Slash commands on
 | `/matchcost` | Match costs for a multiplayer match |
 | `/pack` | A pack from packs.haruhime.moe |
 | `/pool view`, `/pool check`, `/pool parse` | Pools from pools.haruhime.moe, osu!'s content rules check, and reading a pasted pool |
+| `/pool fromtop` | A draft tournament pool from your top plays, to open on packs or build on pools |
+| `/practice` | Maps like your top plays, a bit harder, from pools.haruhime.moe, with a pack link |
+| `/pool me` | Your best score on each map of a pool, with a pack of the maps you haven't played |
 | `/link`, `/help`, `/info`, `/invite` | Linking, help, about, invite |
 
 Player options take an osu! name, a profile link or `#id`, or a Discord member. Left empty, they use your own linked account. Map options left empty use the last map linked in the channel.

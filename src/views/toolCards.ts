@@ -24,6 +24,7 @@ import type { BeatmapMeta, OsuMatch } from "@haruhimemoe/osu";
 import { listGames, type MatchCostFormula, mapWins } from "@haruhimemoe/osu/match";
 import { slotLabel } from "@haruhimemoe/pool";
 import type { CardSlot } from "../embeds/tools.ts";
+import type { Mine } from "./poolMe.ts";
 
 const cut = (text: string, max: number): string => (text.length > max ? text.slice(0, max) : text);
 
@@ -84,6 +85,8 @@ export type PoolCardInput = {
   source: PoolCard["source"];
   name: string;
   subtitle?: string | null | undefined;
+  /** /pool me: the player's best score per beatmap id (null: not played). */
+  mine?: ReadonlyMap<number, Mine | null> | undefined;
   slots: readonly CardSlot[];
   meta: ReadonlyMap<number, BeatmapMeta>;
   /** /pool check: each map's verdict by beatmap id (null: osu! didn't answer). */
@@ -103,6 +106,7 @@ export const toPoolCard = ({
   slots,
   meta,
   verdicts,
+  mine,
   note,
 }: PoolCardInput): PoolCard => {
   const stars = slots
@@ -125,6 +129,7 @@ export const toPoolCard = ({
         stars: map && map.starRating >= 0 ? map.starRating : null,
         lengthSeconds: map ? Math.max(0, Math.round(map.lengthSeconds)) : null,
         check: verdicts ? (verdict ? verdict.status : "unknown") : null,
+        ...(mine ? { mine: mine.get(slot.beatmapId) ?? null } : {}),
       };
     }),
     note: note ? cut(note, 200) : null,
