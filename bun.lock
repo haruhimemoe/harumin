@@ -8,7 +8,7 @@
         "@haruhimemoe/compliance": "0.1.1",
         "@haruhimemoe/harumin-config": "0.10.0",
         "@haruhimemoe/osu": "0.7.0",
-        "@haruhimemoe/pool": "0.3.0",
+        "@haruhimemoe/pool": "0.4.0",
         "discord.js": "14.27.0",
         "mongodb": "7.7.0",
         "rosu-pp-js": "4.0.1",
@@ -71,7 +71,7 @@
 
     "@haruhimemoe/osu": ["@haruhimemoe/osu@0.7.0", "", { "peerDependencies": { "zod": "^4.0.16" } }, "sha512-eKO46jp7J6UnQTtQwXzpw8s6s/RUw7x+H8VPbToDuwlNL/iHW3NkO2z0dkqIzA33LfsRBT4XPNl4R4KKrsk5MQ=="],
 
-    "@haruhimemoe/pool": ["@haruhimemoe/pool@0.3.0", "", { "peerDependencies": { "zod": "^4.0.16" } }, "sha512-5apGV57EPxkkj2hRJnXT6ym/T5CExyRJyA526POVHTQ5p1sSBhfUa6SeUiiZefj95BxHtlA6YT/PfPi0+FJ1hA=="],
+    "@haruhimemoe/pool": ["@haruhimemoe/pool@0.4.0", "", { "peerDependencies": { "zod": "^4.0.16" } }, "sha512-MoHrSJcvJbhc/7xphUnq1kIkR3b2E+bREAn2MqHaa4gV321KboA74dePwF+l/a2uXbP8DiYtuTouw1b52aIN0w=="],
 
     "@jridgewell/resolve-uri": ["@jridgewell/resolve-uri@3.1.2", "", {}, "sha512-bRISgCIjP20/tbWSPWMEi54QVPRZExkuD9lJL+UIxUKtwVJA8wW1Trb1jMs1RFXo1CBTNZ/5hpC9QvmKWdopKw=="],
 
