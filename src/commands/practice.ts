@@ -4,11 +4,13 @@
  *       100 (kept 30 minutes), picks a bucket (NM, HD, HR, DT) and a star target, asks pools'
  *       similar-maps route for up to 5 seeds, and keeps the closest new maps. HR and DT stars
  *       come from osu!'s attributes (cached a day), for the 10 best plays of the bucket in the
- *       top 50 at most. A finished pick is kept an hour, so a repeat costs no osu! or pools call.
+ *       top 50 at most. Maps are kept to a played length: a band picked with `length`, or
+ *       by default near the bucket's usual length in the top 50 (lengths from one osu! call,
+ *       cached a day). A finished pick is kept an hour, so a repeat costs no osu! or pools call.
  *       The answer is a pool card with an "Open as a pack" link (a /k# key: nothing is hosted).
  * @author David @dvhsh (https://dvh.sh)
  * @created Thu Oct 8, 2026
- * @modified Thu Oct 8, 2026
+ * @modified Fri Oct 9, 2026
  */
 
 import type { OsuScore } from "@haruhimemoe/osu";
@@ -23,8 +25,14 @@ import {
   type Bucket,
   bucketOf,
   type Candidate,
+  inRange,
+  type LengthRange,
+  lengthRange,
+  PRACTICE_LENGTHS,
+  type PracticeLength,
   type PracticeTarget,
   pickPractice,
+  playedLength,
   practiceTarget,
   type TopPlay,
 } from "../views/practice.ts";
@@ -44,7 +52,8 @@ const WINDOW = 0.4;
 
 const tops = createTtlCache<number, OsuScore[]>(30 * 60_000, 500);
 const rated = createTtlCache<string, number | null>(24 * 60 * 60_000, 5_000);
-type PracticePick = { target: PracticeTarget; maps: Candidate[] };
+const lengths = createTtlCache<number, number | null>(24 * 60 * 60_000, 20_000);
+type PracticePick = { target: PracticeTarget; range: LengthRange | null; maps: Candidate[] };
 const picks = createTtlCache<string, PracticePick | "none">(60 * 60_000, 1_000);
 
 const isPracticeBucket = (bucket: Bucket): bucket is PracticeBucket =>
@@ -109,24 +118,69 @@ const topPlays = async (
 };
 
 /**
+ * @function withLengths
+ * @param s {Pick<Services, "osu">} osu!
+ * @param plays {readonly TopPlay[]} the top plays
+ * @param bucket {Bucket} the bucket aimed at
+ * @returns {Promise<TopPlay[]>} the plays, the bucket's top 50 with their nomod length (one
+ *          osu! call for the ones not cached; none on failure)
+ */
+const withLengths = async (
+  s: Pick<Services, "osu">,
+  plays: readonly TopPlay[],
+  bucket: Bucket,
+): Promise<TopPlay[]> => {
+  const ids = plays
+    .slice(0, 50)
+    .filter((play) => bucketOf(play.mods) === bucket)
+    .map((play) => play.beatmapId);
+  const missing = ids.filter((id) => lengths.get(id) === undefined);
+  if (missing.length) {
+    try {
+      const { found } = await s.osu.getBeatmaps(missing);
+      for (const id of missing) lengths.set(id, found.get(id)?.lengthSeconds ?? null);
+    } catch {
+      // No lengths: the default range falls back to any.
+    }
+  }
+  return plays.map((play) => {
+    const seconds = ids.includes(play.beatmapId) ? lengths.get(play.beatmapId) : undefined;
+    return typeof seconds === "number" ? { ...play, lengthSeconds: seconds } : play;
+  });
+};
+
+/**
  * @function pick
  * @param s {Services} osu! and pools
  * @param scores {readonly OsuScore[]} the top 100
- * @param asked {{ bucket?: PracticeBucket; stars?: number; count: number }} the options
+ * @param asked {{ bucket?, stars?, length?, count }} the options
  * @returns {Promise<PracticePick | "none" | "no-plays" | "fm" | "unavailable">} the maps, or why not
  */
 const pick = async (
   s: Services,
   scores: readonly OsuScore[],
-  asked: { bucket?: PracticeBucket | undefined; stars?: number | undefined; count: number },
+  asked: {
+    bucket?: PracticeBucket | undefined;
+    stars?: number | undefined;
+    length?: PracticeLength | undefined;
+    count: number;
+  },
 ): Promise<PracticePick | "none" | "no-plays" | "fm" | "unavailable"> => {
-  const plays = await topPlays(s, scores, asked.bucket);
-  const found = practiceTarget(plays, asked.bucket);
+  const rated = await topPlays(s, scores, asked.bucket);
+  const found = practiceTarget(rated, asked.bucket);
   if (!found) return "no-plays";
   if (!isPracticeBucket(found.bucket)) return "fm";
   const target = { bucket: found.bucket, stars: asked.stars ?? found.stars };
-  const seeds = plays
-    .filter((play) => bucketOf(play.mods) === target.bucket)
+  const plays = await withLengths(s, rated, target.bucket);
+  const range = lengthRange(plays, target.bucket, asked.length);
+  const inBucket = plays.filter((play) => bucketOf(play.mods) === target.bucket);
+  // Seeds of the right length find neighbors of the right length; any seed when none fit.
+  const fitting = inBucket.filter(
+    (play) =>
+      play.lengthSeconds !== undefined &&
+      inRange(playedLength(play.lengthSeconds, target.bucket), range),
+  );
+  const seeds = (fitting.length ? fitting : inBucket)
     .sort((a, b) => Math.abs(a.stars - target.stars) - Math.abs(b.stars - target.stars))
     .slice(0, SEEDS);
   const answers = await Promise.all(
@@ -144,9 +198,23 @@ const pick = async (
     answers.flatMap((answer) => answer ?? []),
     new Set(scores.map((score) => score.beatmapId)),
     asked.count,
+    range,
   );
-  return maps.length ? { target, maps } : "none";
+  return maps.length ? { target, range, maps } : "none";
 };
+
+const clock = (seconds: number): string => {
+  const whole = Math.round(seconds);
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
+};
+
+/**
+ * @function lengthText
+ * @param range {LengthRange} a played length range
+ * @returns {string} "1:00 to 2:30", or "over 7:00" with no cap
+ */
+const lengthText = (range: LengthRange): string =>
+  range.max === null ? `over ${clock(range.min)}` : `${clock(range.min)} to ${clock(range.max)}`;
 
 export const practice: Command = {
   category: "haruhime",
@@ -169,6 +237,18 @@ export const practice: Command = {
         .setMinValue(1)
         .setMaxValue(12),
     )
+    .addStringOption((option) =>
+      option
+        .setName("length")
+        .setDescription("Map length (default: about as long as your top plays)")
+        .addChoices(
+          { name: "short (under 2:00)", value: "short" },
+          { name: "medium (2:00 to 4:00)", value: "medium" },
+          { name: "long (4:00 to 7:00)", value: "long" },
+          { name: "marathon (over 7:00)", value: "marathon" },
+          { name: "any", value: "any" },
+        ),
+    )
     .addIntegerOption((option) =>
       option
         .setName("count")
@@ -186,7 +266,10 @@ export const practice: Command = {
     const starsAsked = interaction.options.getNumber("stars") ?? undefined;
     const stars = starsAsked === undefined ? undefined : Math.round(starsAsked * 100) / 100;
     const count = interaction.options.getInteger("count") ?? 10;
-    const key = `${profile.osuId}:${bucket ?? "-"}:${stars ?? "-"}:${count}`;
+    const rawLength = interaction.options.getString("length");
+    const length =
+      rawLength && rawLength in PRACTICE_LENGTHS ? (rawLength as PracticeLength) : undefined;
+    const key = `${profile.osuId}:${bucket ?? "-"}:${stars ?? "-"}:${length ?? "-"}:${count}`;
     let result: Awaited<ReturnType<typeof pick>> | undefined = picks.get(key);
     if (result === undefined) {
       let scores = tops.get(profile.osuId);
@@ -194,7 +277,7 @@ export const practice: Command = {
         scores = await s.osu.getUserScores(profile.osuId, "best", { ruleset: "osu", limit: 100 });
         tops.set(profile.osuId, scores);
       }
-      result = await pick(s, scores, { bucket, stars, count });
+      result = await pick(s, scores, { bucket, stars, length, count });
       if (typeof result === "object" || result === "none") picks.set(key, result);
     }
     if (result === "no-plays")
@@ -210,10 +293,20 @@ export const practice: Command = {
     if (result === "unavailable")
       return void (await fail(interaction, "pools.haruhime.moe didn't answer. Try again soon."));
     if (result === "none")
-      return void (await fail(interaction, "pools found nothing close enough. Try other stars."));
-    const { target, maps } = result;
+      return void (await fail(
+        interaction,
+        "pools found nothing close enough. Try other stars or another `length`.",
+      ));
+    const { target, range, maps } = result;
     const name = `${profile.username}'s ${target.bucket} practice`;
-    const subtitle = `${target.bucket} · ${target.stars.toFixed(2)} stars · like your top plays`;
+    const subtitle = [
+      target.bucket,
+      `${target.stars.toFixed(2)} stars`,
+      range ? lengthText(range) : null,
+      "like your top plays",
+    ]
+      .filter(Boolean)
+      .join(" · ");
     const packUrl = `${LINKS.packs}/k#${encodePackKey({
       name,
       slots: maps.map((map, i) => ({ mod: target.bucket, index: i + 1, beatmapId: map.beatmapId })),
