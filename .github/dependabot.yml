@@ -1,0 +1,18 @@
+version: 2
+updates:
+  # bun.lock: Dependabot's npm ecosystem can't update it, the bun ecosystem can.
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      dev:
+        dependency-type: development
+  # Keeps the commit-SHA pins in .github/workflows current (and their version comments).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

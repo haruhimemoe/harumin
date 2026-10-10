@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- CI runs CodeQL and a gitleaks scan of the full git history, and Dependabot covers dependencies and pinned actions. Dependencies are on their latest versions.
+
 ### Added
 
 - The rewrite: Bun, discord.js 14, slash commands only, on the haruhime libraries.
