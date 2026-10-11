@@ -49,6 +49,10 @@ export const INVITE_PERMISSIONS = 1024n + 2048n + 16384n + 32768n + 65536n + 262
 export const inviteUrl = (clientId: string): string =>
   `https://discord.com/oauth2/authorize?client_id=${clientId}&scope=bot+applications.commands&permissions=${INVITE_PERMISSIONS}`;
 
+/** Adds harumin to someone's own account: its commands in any DM or server. */
+export const userInstallUrl = (clientId: string): string =>
+  `https://discord.com/oauth2/authorize?client_id=${clientId}&integration_type=1&scope=applications.commands`;
+
 /** Scores per page in /top and /leaderboard. */
 export const PAGE_SIZE = 5;
 /** How long a channel remembers the last map, match, pack or pool. */

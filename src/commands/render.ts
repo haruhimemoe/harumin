@@ -138,8 +138,14 @@ export const startRender = async (
     embeds: [],
     files: png ? [{ attachment: png, name: "replay.png" }] : [],
   });
+  // In a server the bot is in, the message itself can be edited at any time. Where it isn't
+  // (a user install in someone's DMs) only the interaction can, for its first 15 minutes.
   const say = (line: string) => {
-    message.edit({ content: `${line}${below}` }).catch(() => undefined);
+    const content = `${line}${below}`;
+    message
+      .edit({ content })
+      .catch(() => interaction.editReply({ content }))
+      .catch(() => undefined);
   };
   const taken = s.renders.enqueue({
     userId: interaction.user.id,
@@ -148,9 +154,14 @@ export const startRender = async (
     onUpdate: (state) => {
       say(renderStatus(state));
       // A link alone in its own message, so Discord shows the video player under it.
+      // Past 15 minutes outside a server the bot is in, the link goes to the person's DMs.
       if (state.kind === "done") {
         message
           .reply({ content: state.videoUrl, allowedMentions: { repliedUser: false, parse: [] } })
+          .catch(() =>
+            interaction.followUp({ content: state.videoUrl, allowedMentions: { parse: [] } }),
+          )
+          .catch(() => interaction.user.send(`Your render: ${state.videoUrl}`))
           .catch(() => undefined);
       }
     },

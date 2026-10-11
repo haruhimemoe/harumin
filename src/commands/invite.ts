@@ -8,7 +8,7 @@
  */
 
 import { MessageFlags, SlashCommandBuilder } from "discord.js";
-import { inviteUrl, LINKS } from "../constants.ts";
+import { inviteUrl, LINKS, userInstallUrl } from "../constants.ts";
 import { notice } from "../embeds/common.ts";
 import type { Command } from "../types.ts";
 import { imageOrEmbed, linkButtons } from "./shared.ts";
@@ -32,6 +32,7 @@ export const invite: Command = {
           ),
         linkButtons([
           { label: "Add to server", url: inviteUrl(s.env.DISCORD_CLIENT_ID) },
+          { label: "Add to your apps", url: userInstallUrl(s.env.DISCORD_CLIENT_ID) },
           { label: "Dashboard", url: LINKS.dashboard },
           { label: "Website", url: LINKS.site },
         ]),

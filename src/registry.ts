@@ -55,11 +55,37 @@ export const COMMANDS: readonly Command[] = Object.freeze([
   evalCommand,
 ]);
 
+/** Discord's install types: 0 a server install, 1 a user install. */
+const SERVER_INSTALL = 0;
+const USER_INSTALL = 1;
+/** Discord's contexts: 0 a server, 1 a DM with the bot, 2 other DMs and group DMs. */
+const EVERYWHERE = [0, 1, 2];
+
+/**
+ * @function withInstalls
+ * @param command {Command} a command
+ * @returns {Command} the same command installable on a server and on a user (usable in any DM),
+ *          unless it set its own contexts (server-only ones like /track stay server installs)
+ */
+export const withInstalls = (command: Command): Command => {
+  const own = command.data.contexts;
+  return {
+    ...command,
+    data: {
+      ...command.data,
+      integration_types: own ? [SERVER_INSTALL] : [SERVER_INSTALL, USER_INSTALL],
+      contexts: own ?? EVERYWHERE,
+    },
+  };
+};
+
 /**
  * @function publicCommands
- * @returns {Command[]} the commands registered globally (everything but /eval)
+ * @returns {Command[]} the commands registered globally (everything but /eval), each with where
+ *          it can be installed and used
  */
-export const publicCommands = (): Command[] => COMMANDS.filter((command) => !command.devOnly);
+export const publicCommands = (): Command[] =>
+  COMMANDS.filter((command) => !command.devOnly).map(withInstalls);
 
 /**
  * @function devCommands

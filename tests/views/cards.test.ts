@@ -239,7 +239,9 @@ describe("notice cards", () => {
     await cards.draw("notice", notice);
     await cards.draw("notice", notice);
     expect(fetch).toHaveBeenCalledTimes(1);
-    expect(fetch.mock.calls[0]?.[0]).toBe("https://site.test/api/cards/notice");
+    expect((fetch.mock.calls[0] as unknown as [string])[0]).toBe(
+      "https://site.test/api/cards/notice",
+    );
     await cards.draw("notice", { ...notice, tone: "ok" });
     expect(fetch).toHaveBeenCalledTimes(2);
 
