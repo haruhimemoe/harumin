@@ -4,7 +4,8 @@
  *       (osu.ppy.sh/scores/<id>, or /scores/<ruleset>/<id> for a stable score), whose replay
  *       harumin downloads from osu! first. The reply is the replay's score card with one status
  *       line above it, edited as the replay moves through harumin's line (one start per 5
- *       minutes until there's an o!rdr key): its place, o!rdr's progress, then the video link.
+ *       minutes until there's an o!rdr key): its place, o!rdr's progress, then "done", with the
+ *       video link posted alone in a reply so Discord shows the player.
  *       Edits go through the message, not the interaction, so a wait past Discord's 15 minute
  *       interaction window still lands. The Render button on an .osr card (render:osr:<channel>:
  *       <message>) starts the same thing from the posted file.
@@ -78,7 +79,7 @@ export const renderStatus = (state: RenderState): string => {
     case "rendering":
       return `Rendering: ${state.progress}`;
     case "done":
-      return `Render done: ${state.videoUrl}`;
+      return "Render done. The video is in the reply below.";
     case "failed":
       return `Render failed. ${state.message}`;
   }
@@ -144,7 +145,15 @@ export const startRender = async (
     userId: interaction.user.id,
     source: { replay: bytes, filename: "replay.osr" },
     skin,
-    onUpdate: (state) => say(renderStatus(state)),
+    onUpdate: (state) => {
+      say(renderStatus(state));
+      // A link alone in its own message, so Discord shows the video player under it.
+      if (state.kind === "done") {
+        message
+          .reply({ content: state.videoUrl, allowedMentions: { repliedUser: false, parse: [] } })
+          .catch(() => undefined);
+      }
+    },
   });
   if (!taken.ok) {
     say(

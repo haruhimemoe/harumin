@@ -100,7 +100,7 @@ describe("render status", () => {
       "Render #2 in line, starts in about 2 minutes.",
     );
     expect(renderStatus({ kind: "queued", position: 1, startsInMs: 0 })).toContain("starts now");
-    expect(renderStatus({ kind: "done", videoUrl: "https://x" })).toBe("Render done: https://x");
+    expect(renderStatus({ kind: "done", videoUrl: "https://x" })).toContain("reply below");
   });
 });
 
