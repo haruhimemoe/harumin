@@ -14,13 +14,12 @@ import {
   PermissionFlagsBits,
   SlashCommandBuilder,
 } from "discord.js";
-import { notice } from "../embeds/common.ts";
 import { trackListEmbed } from "../embeds/social.ts";
 import { parsePlayerInput, playerKey } from "../services/players.ts";
 import type { Command } from "../types.ts";
 import { RULESET_CHOICES, RULESET_NAMES } from "../utils/format.ts";
 import { toTracksCard } from "../views/toolCards.ts";
-import { fail, imageOrEmbed } from "./shared.ts";
+import { fail, imageOrEmbed, tell } from "./shared.ts";
 
 export const track: Command = {
   category: "osu",
@@ -109,15 +108,13 @@ export const track: Command = {
     }
     if (sub === "remove") {
       const removed = await s.tracks.remove(interaction.guildId, profile.osuId, ruleset);
-      await interaction.editReply({
-        embeds: [
-          notice(
-            removed
-              ? `Stopped tracking **${profile.username}** (${RULESET_NAMES[ruleset]}).`
-              : `**${profile.username}** wasn't tracked in ${RULESET_NAMES[ruleset]}.`,
-          ),
-        ],
-      });
+      await tell(
+        interaction,
+        removed ? "ok" : "info",
+        removed
+          ? `Stopped tracking **${profile.username}** (${RULESET_NAMES[ruleset]}).`
+          : `**${profile.username}** wasn't tracked in ${RULESET_NAMES[ruleset]}.`,
+      );
       return;
     }
     const channel = interaction.options.getChannel("channel") ?? interaction.channel;
@@ -140,6 +137,6 @@ export const track: Command = {
         : result === "exists"
           ? `**${profile.username}** is already tracked in <#${channel.id}>.`
           : `Tracking **${profile.username}** (${RULESET_NAMES[ruleset]}) in <#${channel.id}>. New top plays show up within a few minutes.`;
-    await interaction.editReply({ embeds: [notice(text)] });
+    await tell(interaction, result === "added" ? "ok" : result === "full" ? "error" : "info", text);
   },
 };

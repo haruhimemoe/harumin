@@ -3,7 +3,8 @@
  * @desc Card images from harumin.haruhime.moe: post a card (harumin-config's CARD_ROUTES, bearer
  *       HARUMIN_SERVICE_TOKEN), get a PNG. Best effort: a card that doesn't parse, a slow or
  *       failed answer, or anything but a PNG comes back as null, and the command sends its text
- *       embed instead.
+ *       embed instead. Notice cards are kept a day by their exact text, so a repeated error
+ *       or confirmation costs no request.
  * @author David @dvhsh (https://dvh.sh)
  * @created Wed Oct 7, 2026
  * @modified Thu Oct 8, 2026
@@ -27,6 +28,8 @@ import {
   type MatchCostCard,
   mapCardSchema,
   matchCostCardSchema,
+  type NoticeCard,
+  noticeCardSchema,
   type PoolCard,
   type ProfileCard,
   poolCardSchema,
@@ -44,6 +47,11 @@ import {
 } from "@haruhimemoe/harumin-config";
 import type { z } from "zod";
 import { USER_AGENT } from "../constants.ts";
+import { createTtlCache } from "./cache.ts";
+
+/** Notices repeat word for word, so a drawn one is kept a day (500 at most). */
+const NOTICE_TTL_MS = 24 * 60 * 60_000;
+const NOTICE_CACHE_SIZE = 500;
 
 /** What each card route takes. */
 export type CardInputs = {
@@ -62,6 +70,7 @@ export type CardInputs = {
   info: InfoCard;
   link: LinkCard;
   invite: InviteCard;
+  notice: NoticeCard;
 };
 
 /** One of the card routes. */
@@ -83,6 +92,7 @@ const SCHEMAS: { [K in CardKind]: z.ZodType<CardInputs[K]> } = {
   info: infoCardSchema,
   link: linkCardSchema,
   invite: inviteCardSchema,
+  notice: noticeCardSchema,
 };
 
 /** The drawer. */
@@ -113,8 +123,12 @@ export const createCards = ({
   timeoutMs = 4_000,
   fetch = globalThis.fetch,
   log = () => undefined,
-}: CardsOptions): Cards => ({
-  async draw(kind, card) {
+}: CardsOptions): Cards => {
+  const notices = createTtlCache<string, Buffer>(NOTICE_TTL_MS, NOTICE_CACHE_SIZE);
+  const fetchCard = async <K extends CardKind>(
+    kind: K,
+    card: CardInputs[K],
+  ): Promise<Buffer | null> => {
     const parsed = SCHEMAS[kind].safeParse(card);
     if (!parsed.success) {
       log(`card ${kind} doesn't parse`, parsed.error.issues[0]?.message);
@@ -146,5 +160,16 @@ export const createCards = ({
       log(`card ${kind} failed`, error);
       return null;
     }
-  },
-});
+  };
+  return {
+    async draw(kind, card) {
+      if (kind !== "notice") return fetchCard(kind, card);
+      const key = JSON.stringify(card);
+      const kept = notices.get(key);
+      if (kept) return kept;
+      const png = await fetchCard(kind, card);
+      if (png) notices.set(key, png);
+      return png;
+    },
+  };
+};

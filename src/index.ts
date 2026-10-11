@@ -13,7 +13,7 @@ import { createOrdrClient } from "@haruhimemoe/ordr";
 import { beatmapUrl, userUrl } from "@haruhimemoe/osu/shapes";
 import { Client, Events, GatewayIntentBits, Partials } from "discord.js";
 import { MongoClient } from "mongodb";
-import { linkButtons } from "./commands/shared.ts";
+import { linkButtons, useNoticeCards } from "./commands/shared.ts";
 import { DB_NAME, IDENTITY_DB_NAME, USER_AGENT, VERSION } from "./constants.ts";
 import { scoreEmbed } from "./embeds/osu.ts";
 import { loadEnv } from "./env.ts";
@@ -99,6 +99,8 @@ const services: Services = {
   ),
   startedAt: Date.now(),
 };
+
+useNoticeCards(services.cards);
 
 const client = new Client({
   intents: [

@@ -23,11 +23,13 @@ import {
   type SlashCommandOptionsOnlyBuilder,
   type SlashCommandSubcommandBuilder,
 } from "discord.js";
-import { problem } from "../embeds/common.ts";
+import { notice, problem } from "../embeds/common.ts";
 import { parseMapInput } from "../links/index.ts";
+import type { Cards } from "../services/cards.ts";
 import { pickRuleset, playerKey, resolvePlayer } from "../services/players.ts";
 import type { Services } from "../types.ts";
 import { RULESET_CHOICES } from "../utils/format.ts";
+import { noticeParts } from "../views/notice.ts";
 
 type Builder = SlashCommandBuilder | SlashCommandOptionsOnlyBuilder | SlashCommandSubcommandBuilder;
 
@@ -97,10 +99,53 @@ export const addMapOption = <T extends Builder>(builder: T, required = false): T
  * @returns {Promise<null>} null, so callers can `return fail(...)`
  */
 export const fail = async (interaction: RepliableInteraction, text: string): Promise<null> => {
-  const payload = { embeds: [problem(text)] };
+  await tell(interaction, "error", text);
+  return null;
+};
+
+let noticeCards: Cards | null = null;
+
+/**
+ * @function useNoticeCards
+ * @param cards {Cards | null} the card drawer for errors and confirmations (index.ts sets it)
+ * @returns {void}
+ */
+export const useNoticeCards = (cards: Cards | null): void => {
+  noticeCards = cards;
+};
+
+/**
+ * @function tell
+ * @param interaction {RepliableInteraction} the interaction
+ * @param tone {"error" | "ok" | "info"} what kind of notice
+ * @param text {string} one or two short sentences, Discord markdown
+ * @returns {Promise<void>} the notice as a card image, or as a text embed when the text holds a
+ *          link or an unknown mention, or the card can't be had. Not answered yet, it defers
+ *          (privately) first, since drawing can take longer than Discord's 3 seconds.
+ */
+export const tell = async (
+  interaction: RepliableInteraction,
+  tone: "error" | "ok" | "info",
+  text: string,
+): Promise<void> => {
+  const parts = noticeCards
+    ? noticeParts(text, {
+        channel: (id) => {
+          const channel = interaction.client.channels.cache.get(id);
+          return channel && "name" in channel && channel.name ? channel.name : undefined;
+        },
+        user: (id) => interaction.client.users.cache.get(id)?.username,
+      })
+    : null;
+  if (parts && !interaction.deferred && !interaction.replied) {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  }
+  const png = parts && noticeCards ? await noticeCards.draw("notice", { tone, parts }) : null;
+  const payload = png
+    ? { content: "", embeds: [], files: [{ attachment: png, name: `${tone}.png` }] }
+    : { embeds: [tone === "error" ? problem(text) : notice(text)] };
   if (interaction.deferred || interaction.replied) await interaction.editReply(payload);
   else await interaction.reply({ ...payload, flags: MessageFlags.Ephemeral });
-  return null;
 };
 
 /** The /link nudge. */

@@ -227,3 +227,26 @@ describe("card client", () => {
     expect(log).toHaveBeenCalledTimes(4);
   });
 });
+
+describe("notice cards", () => {
+  const notice = { tone: "error" as const, parts: [{ text: "Nope.", style: "plain" as const }] };
+
+  it("draws a notice once and keeps it, but never keeps a failure", async () => {
+    const fetch = vi.fn(
+      async () => new Response(PNG, { headers: { "Content-Type": "image/png" } }),
+    );
+    const cards = createCards({ siteUrl: "https://site.test", token: "t", fetch });
+    await cards.draw("notice", notice);
+    await cards.draw("notice", notice);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch.mock.calls[0]?.[0]).toBe("https://site.test/api/cards/notice");
+    await cards.draw("notice", { ...notice, tone: "ok" });
+    expect(fetch).toHaveBeenCalledTimes(2);
+
+    const failing = vi.fn(async () => new Response("no", { status: 503 }));
+    const down = createCards({ siteUrl: "https://site.test", token: "t", fetch: failing });
+    expect(await down.draw("notice", notice)).toBeNull();
+    expect(await down.draw("notice", notice)).toBeNull();
+    expect(failing).toHaveBeenCalledTimes(2);
+  });
+});
