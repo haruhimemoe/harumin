@@ -9,11 +9,12 @@
  */
 
 import { HARUMIN_COLLECTIONS } from "@haruhimemoe/harumin-config";
+import { createOrdrClient } from "@haruhimemoe/ordr";
 import { beatmapUrl, userUrl } from "@haruhimemoe/osu/shapes";
 import { Client, Events, GatewayIntentBits, Partials } from "discord.js";
 import { MongoClient } from "mongodb";
 import { linkButtons } from "./commands/shared.ts";
-import { DB_NAME, IDENTITY_DB_NAME, VERSION } from "./constants.ts";
+import { DB_NAME, IDENTITY_DB_NAME, USER_AGENT, VERSION } from "./constants.ts";
 import { scoreEmbed } from "./embeds/osu.ts";
 import { loadEnv } from "./env.ts";
 import { createLinkListener } from "./listeners/links.ts";
@@ -30,6 +31,7 @@ import { createLinking, identityBatchLookup, identityLookup } from "./services/l
 import { createLookups } from "./services/lookups.ts";
 import { createMembers, MEMBER_INDEXES } from "./services/members.ts";
 import { createOsu } from "./services/osu.ts";
+import { createRenders } from "./services/renders.ts";
 import { createServerRows } from "./services/serverRows.ts";
 import { createSettings, mongoSettingsLoader } from "./services/settings.ts";
 import { createTracks, TRACK_INDEXES } from "./services/tracks.ts";
@@ -91,6 +93,10 @@ const services: Services = {
   apps: createApps(env.POOLS_SERVICE_SECRET ? { poolsSecret: env.POOLS_SERVICE_SECRET } : {}),
   cards: createCards({ siteUrl: env.SITE_URL, token: env.HARUMIN_SERVICE_TOKEN, log }),
   animate: createAnimator({ log }),
+  renders: createRenders(
+    createOrdrClient({ ...(env.ORDR_KEY ? { apiKey: env.ORDR_KEY } : {}), userAgent: USER_AGENT }),
+    { gapMs: env.ORDR_GAP_SECONDS * 1000, log },
+  ),
   startedAt: Date.now(),
 };
 
@@ -165,6 +171,7 @@ const shutdown = async (signal: string) => {
   stopping = true;
   log(`${signal}: shutting down`);
   services.tracks.stop();
+  services.renders.stop();
   stopTopgg();
   clearInterval(flushTimer);
   await services.members.flush().catch(() => undefined);

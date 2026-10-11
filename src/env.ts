@@ -32,6 +32,10 @@ export const envSchema = z.object({
   TOPGG_TOKEN: z.preprocess(blankToUndefined, z.string().min(1).optional()),
   /** pools' HARUMIN_SERVICE_SECRET, for /practice; unset, /practice says pools didn't answer. */
   POOLS_SERVICE_SECRET: z.preprocess(blankToUndefined, z.string().min(32).optional()),
+  /** o!rdr's verificationKey, for /render; unset, o!rdr allows one render per 5 minutes. */
+  ORDR_KEY: z.preprocess(blankToUndefined, z.string().min(1).optional()),
+  /** Seconds between /render starts. 300 is o!rdr's limit without a key. */
+  ORDR_GAP_SECONDS: z.coerce.number().int().min(1).max(3600).default(300),
 });
 
 /** The parsed environment. */

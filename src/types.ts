@@ -23,6 +23,7 @@ import type { Linking } from "./services/linking.ts";
 import type { Lookups } from "./services/lookups.ts";
 import type { Members } from "./services/members.ts";
 import type { Osu } from "./services/osu.ts";
+import type { Renders } from "./services/renders.ts";
 import type { ServerRows } from "./services/serverRows.ts";
 import type { Settings } from "./services/settings.ts";
 import type { Tracks } from "./services/tracks.ts";
@@ -47,6 +48,8 @@ export type Services = {
   apps: Apps;
   cards: Cards;
   animate: Animator;
+  /** The /render line. */
+  renders: Renders;
   startedAt: number;
 };
 

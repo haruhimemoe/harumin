@@ -22,6 +22,7 @@ import { pack } from "./commands/pack.ts";
 import { pool } from "./commands/pool.ts";
 import { practice } from "./commands/practice.ts";
 import { recent } from "./commands/recent.ts";
+import { render } from "./commands/render.ts";
 import { score } from "./commands/score.ts";
 import { server } from "./commands/server.ts";
 import { simulate } from "./commands/simulate.ts";
@@ -43,6 +44,7 @@ export const COMMANDS: readonly Command[] = Object.freeze([
   server,
   track,
   matchcost,
+  render,
   pack,
   pool,
   practice,
