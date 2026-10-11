@@ -4,7 +4,7 @@
  *       /matchcost, and /nochoke's summary.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Thu Oct 8, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import type { Ruleset, TrackEntry } from "@haruhimemoe/harumin-config";
@@ -12,8 +12,13 @@ import type { OsuMatch } from "@haruhimemoe/osu";
 import { type MatchCostFormula, mapWins } from "@haruhimemoe/osu/match";
 import { userUrl } from "@haruhimemoe/osu/shapes";
 import type { APIEmbed } from "discord.js";
+import { scope } from "../i18n.ts";
 import { escapeMarkdown, flag, formatInt, RULESET_NAMES, truncate } from "../utils/format.ts";
 import { card } from "./common.ts";
+
+const tx = scope("social");
+
+const t = scope("social");
 
 /** One row of /server. */
 export type ServerRow = {
@@ -35,7 +40,7 @@ export const showStat: Readonly<Record<ServerStat, (n: number) => string>> = {
   rank: (n) => (n === Number.MAX_SAFE_INTEGER ? "unranked" : `#${formatInt(n)}`),
   accuracy: (n) => `${n.toFixed(2)}%`,
   playcount: (n) => `${formatInt(n)} plays`,
-  level: (n) => `level ${n.toFixed(2)}`,
+  level: (n) => t("level", { level: n.toFixed(2) }),
 };
 
 /**
@@ -61,7 +66,7 @@ export const serverEmbed = (
     title: truncate(`${guildName} · ${RULESET_NAMES[options.ruleset]}`, 256),
     description:
       rows.length === 0
-        ? "Nobody here has linked an osu! account yet. `/link` shows how."
+        ? t("nobodyHereHasLinked")
         : [
             `-# ${options.total} linked member${options.total === 1 ? "" : "s"}, by ${options.stat}`,
             ...rows.map(
@@ -70,7 +75,10 @@ export const serverEmbed = (
             ),
           ].join("\n"),
     footer: {
-      text: options.pages > 1 ? `Page ${options.page} of ${options.pages} · harumin` : "harumin",
+      text:
+        options.pages > 1
+          ? t("pagePageOfPages", { page: options.page, pages: options.pages })
+          : "harumin",
     },
   });
 
@@ -82,10 +90,10 @@ export const serverEmbed = (
  */
 export const trackListEmbed = (entries: readonly TrackEntry[], max: number): APIEmbed =>
   card({
-    title: `Tracked players (${entries.length}/${max})`,
+    title: tx("trackedPlayersEntriesMax", { entries: entries.length, max }),
     description:
       entries.length === 0
-        ? "Nobody yet. `/track add` posts a player's new top plays to a channel."
+        ? t("nobodyYetTrackAdd")
         : entries
             .map(
               (entry) =>
@@ -112,7 +120,9 @@ export const matchCostEmbed = (
   const red = wins.get("red");
   const blue = wins.get("blue");
   const score =
-    red !== undefined || blue !== undefined ? `Red **${red ?? 0}** : **${blue ?? 0}** Blue` : "";
+    red !== undefined || blue !== undefined
+      ? t("redRedBlueBlue", { red: red ?? 0, blue: blue ?? 0 })
+      : "";
   return card({
     title: truncate(match.name, 256),
     url: `https://osu.ppy.sh/community/matches/${match.id}`,
@@ -129,7 +139,7 @@ export const matchCostEmbed = (
         }),
       ]
         .filter(Boolean)
-        .join("\n") || "No completed games yet.",
+        .join("\n") || t("noCompletedGamesYet"),
   });
 };
 

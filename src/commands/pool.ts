@@ -9,7 +9,7 @@
  *       the maps they haven't played.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Fri Oct 9, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import {
@@ -34,6 +34,7 @@ import {
 import { LINKS } from "../constants.ts";
 import { card } from "../embeds/common.ts";
 import { bucketCounts, parsedPoolEmbed } from "../embeds/tools.ts";
+import { scope } from "../i18n.ts";
 import { refFromUrl } from "../links/index.ts";
 import { createTtlCache } from "../services/cache.ts";
 import type { Command, Services } from "../types.ts";
@@ -57,6 +58,8 @@ import {
   linkButtons,
   loadPlayer,
 } from "./shared.ts";
+
+const t = scope("pool");
 
 const POOL_ID = /^[A-Za-z0-9_-]{6,40}$/;
 
@@ -105,10 +108,10 @@ const findOrFail = async (
   await fail(
     interaction,
     found === "none"
-      ? "Which pool? Pass `pool`, or link one here first."
+      ? t("whichPoolPassPool")
       : found === "unreadable"
-        ? "That isn't a pool link, id or pack key."
-        : "No public pool there.",
+        ? t("thatIsnTA")
+        : t("noPublicPoolThere"),
   );
   return null;
 };
@@ -166,8 +169,7 @@ const fromtop = async (interaction: ChatInputCommandInteraction, s: Services): P
     })),
     size,
   );
-  if (draft.length < 5)
-    return void (await fail(interaction, "Not enough top plays to draft a pool."));
+  if (draft.length < 5) return void (await fail(interaction, t("notEnoughTopPlays")));
   const slots = draft.map(({ mod, index, beatmapId }) => ({ mod, index, beatmapId }));
   const name = `${profile.username}'s draft pool`;
   const short = shortBuckets(draft, size);
@@ -192,9 +194,9 @@ const fromtop = async (interaction: ChatInputCommandInteraction, s: Services): P
       "pool.png",
       () => parsedPoolEmbed(slots, [], packUrl),
       linkButtons([
-        { label: "Open as a pack", url: packUrl },
+        { label: t("openAsAPack"), url: packUrl },
         // pools is osu!standard only.
-        ...(ruleset === "osu" ? [{ label: "Build it on pools", url: buildOnPools(packUrl) }] : []),
+        ...(ruleset === "osu" ? [{ label: t("buildItOnPools"), url: buildOnPools(packUrl) }] : []),
       ]),
     ),
   );
@@ -274,8 +276,8 @@ const me = async (interaction: ChatInputCommandInteraction, s: Services): Promis
             .slice(0, 4000),
         }),
       linkButtons([
-        { label: found.kind === "pack" ? "Open on packs" : "Open on pools", url: found.url },
-        ...(unplayedUrl ? [{ label: "Open the unplayed as a pack", url: unplayedUrl }] : []),
+        { label: found.kind === "pack" ? t("openOnPacks") : t("openOnPools"), url: found.url },
+        ...(unplayedUrl ? [{ label: t("openTheUnplayedAs"), url: unplayedUrl }] : []),
       ]),
     ),
   );
@@ -351,7 +353,7 @@ export const pool: Command = {
     await interaction.showModal(
       new ModalBuilder()
         .setCustomId("pool:parse")
-        .setTitle("Paste a pool")
+        .setTitle(t("pasteAPool"))
         .addComponents(
           new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
             new TextInputBuilder()
@@ -364,7 +366,7 @@ export const pool: Command = {
           new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
             new TextInputBuilder()
               .setCustomId("text")
-              .setLabel("Maps, one per line")
+              .setLabel(t("mapsOnePerLine"))
               .setPlaceholder("NM1 https://osu.ppy.sh/b/129891\nHD1 1872396")
               .setStyle(TextInputStyle.Paragraph)
               .setMaxLength(4000),
@@ -373,14 +375,14 @@ export const pool: Command = {
     );
   },
   async modal(interaction, s) {
-    const name = interaction.fields.getTextInputValue("name").trim() || "Pasted pool";
+    const name = interaction.fields.getTextInputValue("name").trim() || t("pastedPool");
     const { slots, newBuckets, errors } = parsePoolText(
       interaction.fields.getTextInputValue("text"),
       { slots: [] },
     );
     if (slots.length === 0) {
       await interaction.reply({
-        content: `Nothing to read there.\n${POOL_LINE_HELP}`,
+        content: t("nothingToReadThere", { HELP: POOL_LINE_HELP }),
         flags: MessageFlags.Ephemeral,
       });
       return;
@@ -407,7 +409,7 @@ export const pool: Command = {
         note: errors.length
           ? `${errors.length} line${errors.length === 1 ? "" : "s"} skipped · ${errors
               .slice(0, 3)
-              .map((error) => `line ${error.line}: ${error.reason}`)
+              .map((error) => t("lineError", { line: error.line, reason: error.reason }))
               .join(" · ")}`
           : null,
       }),
@@ -418,8 +420,8 @@ export const pool: Command = {
         "pool.png",
         () => parsedPoolEmbed(slots, errors, url),
         linkButtons([
-          ...(url ? [{ label: "Open as a pack", url }] : []),
-          { label: "Build it on pools", url: url ? buildOnPools(url) : `${LINKS.pools}/new` },
+          ...(url ? [{ label: t("openAsAPack"), url }] : []),
+          { label: t("buildItOnPools"), url: url ? buildOnPools(url) : `${LINKS.pools}/new` },
         ]),
       ),
     );

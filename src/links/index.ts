@@ -6,7 +6,7 @@
  *       at most MAX_LINKS_PER_MESSAGE refs, duplicates dropped, in the order they appear.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import type { AutoEmbedKey } from "@haruhimemoe/harumin-config";

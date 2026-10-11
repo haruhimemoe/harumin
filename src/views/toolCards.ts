@@ -6,7 +6,7 @@
  *       limits so a card always parses.
  * @author David @dvhsh (https://dvh.sh)
  * @created Thu Oct 8, 2026
- * @modified Thu Oct 8, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import type { ComplianceVerdict } from "@haruhimemoe/compliance";
@@ -24,7 +24,10 @@ import type { BeatmapMeta, OsuMatch } from "@haruhimemoe/osu";
 import { listGames, type MatchCostFormula, mapWins } from "@haruhimemoe/osu/match";
 import { slotLabel } from "@haruhimemoe/pool";
 import type { CardSlot } from "../embeds/tools.ts";
+import { scope } from "../i18n.ts";
 import type { Mine } from "./poolMe.ts";
+
+const t = scope("toolCards");
 
 const cut = (text: string, max: number): string => (text.length > max ? text.slice(0, max) : text);
 
@@ -60,7 +63,7 @@ export const toMatchCostCard = (
     .filter(Boolean)
     .join(" · ");
   return {
-    name: cut(match.name, 128) || `Match ${match.id}`,
+    name: cut(match.name, 128) || t("matchId", { id: match.id }),
     formula: options.formula,
     note: note || null,
     teams: red !== undefined || blue !== undefined ? { red: red ?? 0, blue: blue ?? 0 } : null,
@@ -191,7 +194,7 @@ export const toServerCard = (
 ): ServerCard => ({
   guild: {
     id: guild.id,
-    name: cut(guild.name, 100) || "This server",
+    name: cut(guild.name, 100) || t("thisServer"),
     icon: guild.icon && /^(a_)?[0-9a-f]{32}$/.test(guild.icon) ? guild.icon : null,
   },
   ruleset: options.ruleset,

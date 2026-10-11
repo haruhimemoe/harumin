@@ -4,7 +4,7 @@
  *       keeps its place in the original list (a top play stays "#7" however it's sorted).
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import type { OsuMod, OsuScore } from "@haruhimemoe/osu";

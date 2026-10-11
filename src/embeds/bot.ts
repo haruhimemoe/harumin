@@ -4,7 +4,7 @@
  *       /link.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { userUrl } from "@haruhimemoe/osu/shapes";
@@ -15,10 +15,15 @@ import {
   type RESTPostAPIChatInputApplicationCommandsJSONBody,
 } from "discord.js";
 import { LINKS, VERSION } from "../constants.ts";
+import { scope } from "../i18n.ts";
 import type { LinkedAccount } from "../services/linking.ts";
 import type { Category } from "../types.ts";
 import { formatInt, truncate } from "../utils/format.ts";
 import { card } from "./common.ts";
+
+const tx = scope("bot");
+
+const t = scope("bot");
 
 /** A command as /help and the site see it. */
 export type CommandInfo = {
@@ -71,7 +76,7 @@ export const helpEmbed = (commands: readonly CommandInfo[]): APIEmbed => {
   return card({
     title: "harumin",
     url: LINKS.commands,
-    description: `osu! in Discord. Pick a command for details: \`/help command:top\`.\nPlayer options default to your linked account (\`/link\`).`,
+    description: t("helpIntro"),
     fields,
   });
 };
@@ -121,7 +126,7 @@ export const infoEmbed = ({
     title: `harumin ${VERSION}`,
     url: LINKS.site,
     description: [
-      "An osu! bot from haruhime.moe, for players, mappers and tournament hosts.",
+      t("anOsuBotFrom"),
       "",
       `**${formatInt(guilds)}** servers · up ${hours}h ${minutes}m · ${Math.round(pingMs)}ms`,
       "",
@@ -138,9 +143,9 @@ export const infoEmbed = ({
  */
 export const linkEmbed = (account: LinkedAccount | null, hubUrl: string): APIEmbed =>
   card({
-    title: account ? "Linked" : "Link your osu! account",
+    title: account ? "Linked" : tx("linkYourOsuAccount"),
     url: `${hubUrl}/account`,
     description: account
-      ? `You're linked to **[${account.username}](${userUrl(account.osuId)})**. Commands use it when you leave the player empty.\nTo change or remove it, open your account on [haruhime.moe](${hubUrl}/account).`
-      : `Sign in on [haruhime.moe](${hubUrl}/account) with osu!, then link Discord there. It takes a minute, and works for every haruhime tool.\nAfter that, \`/osu\`, \`/recent\` and the rest know who you are.`,
+      ? t("youReLinkedTo", { username: account.username, osuId: userUrl(account.osuId), hubUrl })
+      : t("signInOnHaruhime", { hubUrl }),
   });

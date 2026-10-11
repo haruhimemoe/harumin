@@ -6,7 +6,7 @@
  *       guild list for a Discord id comes from the bot, never from the caller.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Thu Oct 8, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { createHash, timingSafeEqual } from "node:crypto";

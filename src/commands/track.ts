@@ -4,7 +4,7 @@
  *       At most MAX_TRACKED_PER_GUILD players per server; the dashboard shows the same list.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Thu Oct 8, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { MAX_TRACKED_PER_GUILD, type Ruleset } from "@haruhimemoe/harumin-config";
@@ -15,11 +15,14 @@ import {
   SlashCommandBuilder,
 } from "discord.js";
 import { trackListEmbed } from "../embeds/social.ts";
+import { scope } from "../i18n.ts";
 import { parsePlayerInput, playerKey } from "../services/players.ts";
 import type { Command } from "../types.ts";
 import { RULESET_CHOICES, RULESET_NAMES } from "../utils/format.ts";
 import { toTracksCard } from "../views/toolCards.ts";
 import { fail, imageOrEmbed, tell } from "./shared.ts";
+
+const t = scope("track");
 
 export const track: Command = {
   category: "osu",
@@ -77,7 +80,7 @@ export const track: Command = {
       !interaction.inGuild() ||
       !interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)
     ) {
-      await fail(interaction, "You need Manage Server to change tracking.");
+      await fail(interaction, t("youNeedManageServer"));
       return;
     }
     const sub = interaction.options.getSubcommand();
@@ -96,7 +99,7 @@ export const track: Command = {
     }
     const input = parsePlayerInput(interaction.options.getString("name", true));
     if (!input) {
-      await fail(interaction, "That isn't an osu! username.");
+      await fail(interaction, t("thatIsnTAn"));
       return;
     }
     const ruleset = (interaction.options.getString("mode") as Ruleset | null) ?? "osu";
@@ -112,14 +115,17 @@ export const track: Command = {
         interaction,
         removed ? "ok" : "info",
         removed
-          ? `Stopped tracking **${profile.username}** (${RULESET_NAMES[ruleset]}).`
+          ? t("stoppedTrackingUsernameRuleset", {
+              username: profile.username,
+              ruleset: RULESET_NAMES[ruleset],
+            })
           : `**${profile.username}** wasn't tracked in ${RULESET_NAMES[ruleset]}.`,
       );
       return;
     }
     const channel = interaction.options.getChannel("channel") ?? interaction.channel;
     if (!channel) {
-      await fail(interaction, "Pick a channel.");
+      await fail(interaction, t("pickAChannel"));
       return;
     }
     const result = await s.tracks.add({
@@ -133,10 +139,14 @@ export const track: Command = {
     });
     const text =
       result === "full"
-        ? `This server already tracks ${MAX_TRACKED_PER_GUILD} players. Remove one first.`
+        ? t("thisServerAlreadyTracks", { GUILD: MAX_TRACKED_PER_GUILD })
         : result === "exists"
           ? `**${profile.username}** is already tracked in <#${channel.id}>.`
-          : `Tracking **${profile.username}** (${RULESET_NAMES[ruleset]}) in <#${channel.id}>. New top plays show up within a few minutes.`;
+          : t("trackingUsernameRulesetIn", {
+              username: profile.username,
+              ruleset: RULESET_NAMES[ruleset],
+              id: channel.id,
+            });
     await tell(interaction, result === "added" ? "ok" : result === "full" ? "error" : "info", text);
   },
 };

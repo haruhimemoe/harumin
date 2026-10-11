@@ -6,7 +6,7 @@
  *       (legacy total score above 0) as stable.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import type { Ruleset } from "@haruhimemoe/harumin-config";

@@ -3,19 +3,22 @@
  * @desc /simulate: pp for a made-up score on a map: accuracy, combo, misses and mods.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Wed Oct 7, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { formatMods } from "@haruhimemoe/osu/format";
 import { beatmapUrl } from "@haruhimemoe/osu/shapes";
 import { SlashCommandBuilder } from "discord.js";
 import { simulateEmbed } from "../embeds/osu.ts";
+import { scope, translate } from "../i18n.ts";
 import { simulate as simulatePp } from "../services/pp.ts";
 import type { Command } from "../types.ts";
 import { mapLabel } from "../utils/format.ts";
 import { parseModsInput } from "../utils/mods.ts";
 import { toSimulateCard } from "../views/cards.ts";
 import { addMapOption, cardReply, fail, linkButtons, mapFromOption } from "./shared.ts";
+
+const t = scope("simulate");
 
 export const simulate: Command = {
   category: "osu",
@@ -40,7 +43,7 @@ export const simulate: Command = {
   async execute(interaction, s) {
     const mods = parseModsInput(interaction.options.getString("mods") ?? "");
     if (mods === null) {
-      await fail(interaction, "That isn't a mod combination. Try `HDDT`.");
+      await fail(interaction, t("thatIsnTA"));
       return;
     }
     const beatmapId = await mapFromOption(interaction, s);
@@ -53,10 +56,7 @@ export const simulate: Command = {
     }
     const bytes = await s.beatmaps.get(beatmapId, map.checksum);
     if (!bytes) {
-      await fail(
-        interaction,
-        "Couldn't get that map's file from osu! right now. Try again in a minute.",
-      );
+      await fail(interaction, t("couldnTGetThat"));
       return;
     }
     const input = {
@@ -73,7 +73,7 @@ export const simulate: Command = {
     });
     s.context.nameMap(beatmapId, mapLabel(map));
     s.context.rememberMap(interaction.channelId, beatmapId);
-    const links = linkButtons([{ label: "Beatmap", url: beatmapUrl(beatmapId) }]);
+    const links = linkButtons([{ label: translate("common.beatmap"), url: beatmapUrl(beatmapId) }]);
     const png = await s.cards.draw("simulate", toSimulateCard(map, result, { ...input, mods }));
     await interaction.editReply(
       png

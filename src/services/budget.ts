@@ -6,7 +6,7 @@
  *       before giving up; the osu! client turns a refusal into a "budget" error.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 /** createBudget's options. `now` and `sleep` are for tests. */

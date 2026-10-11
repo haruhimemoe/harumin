@@ -8,7 +8,7 @@
  *       card. An output over 8 MB is redone smaller once. Finished gifs are kept 10 minutes.
  * @author David @dvhsh (https://dvh.sh)
  * @created Wed Oct 7, 2026
- * @modified Wed Oct 7, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { createHash, randomUUID } from "node:crypto";

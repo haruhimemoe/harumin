@@ -27,12 +27,13 @@ harumin: the osu! Discord bot. Bun 1.4, TypeScript, discord.js 14, slash command
 - **`/eval` stays locked three ways**: registered only in `DEV_GUILD_ID`, run only for `OWNER_ID` in `DEV_GUILD_ID`, output ephemeral and redacted.
 - **Settings shapes come from `@haruhimemoe/harumin-config`.** The site writes them; the bot reads.
 - Embeds and links stay pure and tested. Commands stay thin.
+- **Words come from the catalogs.** User-facing text goes through a file's `const t = scope("<file>")` (src/i18n.ts), keys in `@haruhimemoe/messages`' `harumin-bot` catalog; the router and link listener set the locale. Slash command definitions keep their English (`setDescription`), and `harumin-bot.commands` mirrors it (tests/i18n.test.ts); `scripts/deploy.ts` adds Discord's localizations. Never translate headers, ids or log lines.
 - Code style: Biome. Every file starts with the `@file / @desc / @author / @created / @modified` header.
 
 ## Before calling a change done
 
 ```sh
-bun run check && bun run typecheck && bun run test:coverage
+bun run check && bun run typecheck && bun run check:keys && bun run test:coverage
 ```
 
 When commands change, run `bun run export-commands` and commit the site's `src/data/commands.json`.

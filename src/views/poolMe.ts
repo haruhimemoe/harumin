@@ -6,14 +6,17 @@
  *       the budget is null too, and noted so the footer can say osu! was busy.
  * @author David @dvhsh (https://dvh.sh)
  * @created Fri Oct 9, 2026
- * @modified Fri Oct 9, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import type { PoolCard, Ruleset } from "@haruhimemoe/harumin-config";
 import { OsuApiError, type OsuScore } from "@haruhimemoe/osu";
+import { scope } from "../i18n.ts";
 import type { Services } from "../types.ts";
 import { mapLimit } from "../utils/async.ts";
 import { bestOf } from "./best.ts";
+
+const t = scope("poolMe");
 
 /** A player's score on one slot, as the pool card draws it. */
 export type Mine = NonNullable<PoolCard["slots"][number]["mine"]>;
@@ -41,7 +44,7 @@ export const summarizeMine = (
   slots: readonly { mine?: { accuracy: number } | null | undefined }[],
 ): string => {
   const played = slots.flatMap((slot) => (slot.mine ? [slot.mine.accuracy] : []));
-  const head = `played ${played.length} of ${slots.length}`;
+  const head = t("played", { played: played.length, total: slots.length });
   if (!played.length) return head;
   const avg = played.reduce((sum, n) => sum + n, 0) / played.length;
   return `${head} · avg ${avg.toFixed(2)}%`;

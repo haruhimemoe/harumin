@@ -5,8 +5,12 @@
  *       it. Passes rank above fails, then total score, the way osu! ranks them.
  * @author David @dvhsh (https://dvh.sh)
  * @created Thu Oct 8, 2026
- * @modified Thu Oct 8, 2026
+ * @modified Sun Oct 11, 2026
  */
+
+import { scope } from "../i18n.ts";
+
+const t = scope("session");
 
 /** One attempt as the session needs it. Accuracy is a percent (0 to 100). */
 export type SessionScore = {
@@ -18,9 +22,6 @@ export type SessionScore = {
 
 /** The session line on the card. */
 export type Session = { today: number; note: string | null };
-
-const plural = (n: number, word: "fail" | "try") =>
-  `${n} ${n === 1 ? word : word === "try" ? "tries" : "fails"}`;
 
 /** Whether a beats b: a pass beats a fail, then the higher total score. */
 const beats = (a: SessionScore, b: SessionScore) =>
@@ -42,14 +43,15 @@ export const sessionOf = (scores: readonly SessionScore[], index: number): Sessi
   if (today < 2) return { today, note: null };
   const older = same.filter(({ at }) => at > index);
   if (shown.passed && older.length > 0 && older.every(({ score }) => !score.passed)) {
-    return { today, note: `first pass after ${plural(older.length, "fail")}` };
+    return { today, note: t("firstPass", { count: older.length }) };
   }
   const best = same.reduce((top, next) => (beats(next.score, top.score) ? next : top));
-  if (best.at === index || !beats(best.score, shown)) return { today, note: `best of ${today}` };
+  if (best.at === index || !beats(best.score, shown))
+    return { today, note: t("bestOf", { count: today }) };
   // The list is newest first: a better try at a lower index came after the shown one.
   if (best.at < index) return { today, note: null };
   return {
     today,
-    note: `best was ${best.score.accuracy.toFixed(2)}%, ${plural(best.at - index, "try")} ago`,
+    note: t("bestWas", { accuracy: best.score.accuracy.toFixed(2), count: best.at - index }),
   };
 };

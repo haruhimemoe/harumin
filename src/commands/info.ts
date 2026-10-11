@@ -4,14 +4,17 @@
  *       buttons. The text embed goes out when the image can't be had.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Thu Oct 8, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { SlashCommandBuilder } from "discord.js";
 import { LINKS, VERSION } from "../constants.ts";
 import { infoEmbed } from "../embeds/bot.ts";
+import { scope } from "../i18n.ts";
 import type { Command } from "../types.ts";
 import { imageOrEmbed, linkButtons } from "./shared.ts";
+
+const t = scope("info");
 
 export const info: Command = {
   category: "bot",
@@ -36,11 +39,11 @@ export const info: Command = {
         () => infoEmbed(stats),
         png
           ? linkButtons([
-              { label: "Website", url: LINKS.site },
-              { label: "Commands", url: LINKS.commands },
-              { label: "Dashboard", url: LINKS.dashboard },
-              { label: "Support", url: LINKS.support },
-              { label: "Source", url: LINKS.source },
+              { label: t("website"), url: LINKS.site },
+              { label: t("commands"), url: LINKS.commands },
+              { label: t("dashboard"), url: LINKS.dashboard },
+              { label: t("support"), url: LINKS.support },
+              { label: t("source"), url: LINKS.source },
             ])
           : [],
       ),

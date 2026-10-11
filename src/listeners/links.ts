@@ -7,7 +7,7 @@
  *       channel where harumin can't post embeds gets nothing.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Thu Oct 8, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { beatmapUrl } from "@haruhimemoe/osu/shapes";
@@ -23,12 +23,15 @@ import { matchCostReply } from "../commands/matchcost.ts";
 import { type CardMessage, imageOrEmbed, linkButtons } from "../commands/shared.ts";
 import { EMBED_DEDUPE_MS, LINKS } from "../constants.ts";
 import { bbPreviewEmbed, matchSummaryEmbed } from "../embeds/tools.ts";
+import { scope, translate, withLocale } from "../i18n.ts";
 import { findLinks, type LinkRef, refId, settingFor } from "../links/index.ts";
 import { createTtlCache } from "../services/cache.ts";
 import type { Services } from "../types.ts";
 import { renderMap } from "../views/map.ts";
 import { loadReplay, MAX_REPLAY_BYTES, replayCard, replayLine } from "../views/replay.ts";
 import { findPack, findPackKey, findPool, renderPoolCard } from "../views/tools.ts";
+
+const t = scope("links");
 
 /**
  * @function remember
@@ -67,7 +70,7 @@ export const renderLink = async (s: Services, ref: LinkRef): Promise<CardMessage
           new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
             new ButtonBuilder()
               .setCustomId(`matchcost:run:${ref.matchId}`)
-              .setLabel("Match costs")
+              .setLabel(t("matchCosts"))
               .setStyle(ButtonStyle.Secondary),
           ),
         ],
@@ -91,7 +94,7 @@ export const renderLink = async (s: Services, ref: LinkRef): Promise<CardMessage
         png,
         "bb.png",
         () => bbPreviewEmbed(ref.templateId),
-        linkButtons([{ label: "Open on bb", url: `${LINKS.bb}/t/${ref.templateId}` }]),
+        linkButtons([{ label: t("openOnBb"), url: `${LINKS.bb}/t/${ref.templateId}` }]),
       );
     }
   }
@@ -120,7 +123,9 @@ export const renderReplay = async (
         .setLabel("Render")
         .setStyle(ButtonStyle.Secondary),
     ),
-    ...linkButtons([{ label: "Beatmap", url: beatmapUrl(loaded.replay.map.beatmapId) }]),
+    ...linkButtons([
+      { label: translate("common.beatmap"), url: beatmapUrl(loaded.replay.map.beatmapId) },
+    ]),
   ];
   return {
     content: png ? "" : replayLine(loaded.replay),
@@ -152,7 +157,7 @@ export const createLinkListener = (
   log: (message: string, error?: unknown) => void,
 ) => {
   const recent = createTtlCache<string, true>(EMBED_DEDUPE_MS, 20_000);
-  return async (message: Message): Promise<void> => {
+  const handle = async (message: Message): Promise<void> => {
     if (message.author.bot || message.webhookId || !message.inGuild()) return;
     s.members.seen(message.guildId, message.author.id);
     const refs = findLinks(message.content);
@@ -192,4 +197,7 @@ export const createLinkListener = (
       }
     }
   };
+  // Link cards speak the server's language (its Discord preferred locale).
+  return (message: Message): Promise<void> =>
+    withLocale(message.guild?.preferredLocale, () => handle(message));
 };

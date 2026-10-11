@@ -6,7 +6,7 @@
  *       and has a cooldown.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Wed Oct 7, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import type { OsuScore } from "@haruhimemoe/osu";
@@ -14,6 +14,7 @@ import { userUrl } from "@haruhimemoe/osu/shapes";
 import { SlashCommandBuilder } from "discord.js";
 import { scoreListEmbed } from "../embeds/osu.ts";
 import { weightedPp } from "../embeds/social.ts";
+import { scope } from "../i18n.ts";
 import type { ScorePp } from "../services/pp.ts";
 import type { Command } from "../types.ts";
 import { mapLimit } from "../utils/async.ts";
@@ -21,6 +22,10 @@ import { formatPp, RULESET_NAMES } from "../utils/format.ts";
 import { toScoreListCard } from "../views/cards.ts";
 import { tryScorePp } from "../views/pp.ts";
 import { addPlayerOptions, cardReply, fail, linkButtons, loadPlayer } from "./shared.ts";
+
+const tx = scope("nochoke");
+
+const t = scope("nochoke");
 
 const COOLDOWN_MS = 30_000;
 const lastUse = new Map<string, number>();
@@ -41,7 +46,7 @@ export const nochoke: Command = {
   async execute(interaction, s) {
     const last = lastUse.get(interaction.user.id) ?? 0;
     if (Date.now() - last < COOLDOWN_MS) {
-      await fail(interaction, `One /nochoke every ${COOLDOWN_MS / 1000} seconds, please.`);
+      await fail(interaction, t("oneNochokeEveryMs", { MS: COOLDOWN_MS / 1000 }));
       return;
     }
     lastUse.set(interaction.user.id, Date.now());
@@ -84,7 +89,7 @@ export const nochoke: Command = {
       toScoreListCard(ranked, {
         profile,
         ruleset,
-        title: "Without chokes",
+        title: tx("withoutChokes"),
         note: `${gain}${skipped}`.slice(0, 128),
         page: 1,
         pages: 1,

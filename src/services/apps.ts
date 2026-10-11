@@ -7,7 +7,7 @@
  *       ones answer 404 and read as null. Answers are cached for two minutes.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { z } from "zod";

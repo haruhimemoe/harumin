@@ -6,7 +6,7 @@
  *       the image can't be had.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Thu Oct 8, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { evaluateBeatmapset, factsFromOsuBeatmapset } from "@haruhimemoe/compliance";
@@ -15,8 +15,11 @@ import { decodePackKey, PackKeyError } from "@haruhimemoe/pool";
 import { type CardMessage, imageOrEmbed, linkButtons } from "../commands/shared.ts";
 import { LINKS } from "../constants.ts";
 import { type CardSlot, type CheckRow, poolCardEmbed, poolCheckEmbed } from "../embeds/tools.ts";
+import { scope } from "../i18n.ts";
 import type { Services } from "../types.ts";
 import { toPoolCard } from "./toolCards.ts";
+
+const t = scope("tools");
 
 const CONTENT_RULES_URL = "https://osu.ppy.sh/wiki/en/Rules/Content_usage_permissions";
 
@@ -60,7 +63,7 @@ export const findPackKey = (key: string): FoundPool | null => {
       name: pool.name,
       slots: pool.slots,
       url: `${LINKS.packs}/k#${key}`,
-      subtitle: "Pack key",
+      subtitle: t("packKey"),
     };
   } catch (error) {
     if (error instanceof PackKeyError) return null;
@@ -106,7 +109,7 @@ export const findPool = async (
     pool.tournament,
     pool.round,
     pool.year ? String(pool.year) : "",
-    pool.owner ? `by ${pool.owner.username}` : "",
+    pool.owner ? t("by", { name: pool.owner.username }) : "",
   ]
     .filter(Boolean)
     .join(" · ");
@@ -125,7 +128,7 @@ export const findPool = async (
  * @returns {{ label: string; url: string }} the button that opens it on packs or pools
  */
 const openButton = (found: FoundPool) => ({
-  label: found.kind === "pack" ? "Open on packs" : "Open on pools",
+  label: found.kind === "pack" ? t("openOnPacks") : t("openOnPools"),
   url: found.url,
 });
 
@@ -167,7 +170,7 @@ export const checkNote = (rows: readonly CheckRow[]): string => {
   const count = (status: string | null) =>
     rows.filter((row) => (row.verdict?.status ?? null) === status).length;
   const ok = count("ok");
-  if (ok === rows.length) return `All ${rows.length} maps are fine for official tournaments.`;
+  if (ok === rows.length) return t("allRowsMapsAre2", { rows: rows.length });
   return [
     `${ok} of ${rows.length} maps are fine`,
     count("disallowed") ? `${count("disallowed")} not allowed` : "",
@@ -218,6 +221,6 @@ export const renderPoolCheck = async (
     png,
     "check.png",
     () => poolCheckEmbed(found.name, rows),
-    linkButtons([openButton(found), { label: "Content rules", url: CONTENT_RULES_URL }]),
+    linkButtons([openButton(found), { label: t("contentRules"), url: CONTENT_RULES_URL }]),
   );
 };

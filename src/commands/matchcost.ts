@@ -4,7 +4,7 @@
  *       link when none is given), by Bathbot's formula or another one.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Thu Oct 8, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import type { OsuMatch } from "@haruhimemoe/osu";
@@ -12,9 +12,12 @@ import { MATCH_COST_FORMULAS, type MatchCostFormula, matchCosts } from "@haruhim
 import { parseMatchId } from "@haruhimemoe/osu/shapes";
 import { SlashCommandBuilder } from "discord.js";
 import { matchCostEmbed } from "../embeds/social.ts";
+import { scope } from "../i18n.ts";
 import type { Command, Services } from "../types.ts";
 import { toMatchCostCard } from "../views/toolCards.ts";
 import { type CardMessage, fail, imageOrEmbed, linkButtons } from "./shared.ts";
+
+const t = scope("matchcost");
 
 /**
  * @function matchCostReply
@@ -89,12 +92,7 @@ export const matchcost: Command = {
       ? parseMatchId(input)
       : (s.context.get(interaction.channelId, "match")?.matchId ?? null);
     if (!matchId) {
-      await fail(
-        interaction,
-        input
-          ? "That isn't an mp link or id."
-          : "Which match? Pass `match`, or link one here first.",
-      );
+      await fail(interaction, input ? t("thatIsnTAn") : t("whichMatchPassMatch"));
       return;
     }
     await interaction.deferReply();

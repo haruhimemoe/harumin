@@ -4,7 +4,7 @@
  *       a pool's content-rules check, a parsed pool, a match summary and a bb template preview.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import type { ComplianceVerdict } from "@haruhimemoe/compliance";
@@ -16,8 +16,13 @@ import { beatmapUrl } from "@haruhimemoe/osu/shapes";
 import { type SlotLineError, slotLabel } from "@haruhimemoe/pool";
 import type { APIEmbed } from "discord.js";
 import { COLORS, LINKS } from "../constants.ts";
+import { scope } from "../i18n.ts";
 import { escapeMarkdown, formatInt, truncate } from "../utils/format.ts";
 import { card } from "./common.ts";
+
+const tx = scope("tools");
+
+const t = scope("tools");
 
 /** A slot as the cards read it. */
 export type CardSlot = { mod: string | null; index: number; beatmapId: number };
@@ -139,12 +144,12 @@ export const poolCheckEmbed = (name: string, rows: readonly CheckRow[]): APIEmbe
         : maybe.length > 0 || unknown.length > 0
           ? COLORS.warn
           : COLORS.ok,
-    title: truncate(`Content rules · ${name || "Untitled"}`, 256),
+    title: truncate(name ? tx("contentRulesNamed", { name }) : tx("contentRulesUntitled"), 256),
     url: "https://osu.ppy.sh/wiki/en/Rules/Content_usage_permissions",
     description: truncate(
       [
         bad.length === 0 && maybe.length === 0 && unknown.length === 0
-          ? `All ${rows.length} maps are fine for officially supported tournaments.`
+          ? t("allRowsMapsAre", { rows: rows.length })
           : `${rows.length - bad.length - maybe.length - unknown.length} of ${rows.length} maps are fine.`,
         bad.length ? `\n**Not allowed**\n${bad.map(line).join("\n")}` : "",
         maybe.length ? `\n**Needs a closer look**\n${maybe.map(line).join("\n")}` : "",
@@ -171,7 +176,7 @@ export const parsedPoolEmbed = (
   packKeyUrl: string | null,
 ): APIEmbed =>
   card({
-    title: `Read ${slots.length} map${slots.length === 1 ? "" : "s"}`,
+    title: tx("readSlots", { count: slots.length }),
     ...(packKeyUrl ? { url: packKeyUrl } : {}),
     description: truncate(
       [
@@ -182,7 +187,7 @@ export const parsedPoolEmbed = (
         errors.length
           ? `\n**Skipped**\n${errors
               .slice(0, 10)
-              .map((error) => `Line ${error.line}: ${error.reason}`)
+              .map((error) => t("lineLineReason", { line: error.line, reason: error.reason }))
               .join("\n")}`
           : "",
         packKeyUrl
@@ -219,7 +224,7 @@ export const matchSummaryEmbed = (match: OsuMatch): APIEmbed =>
 export const bbPreviewEmbed = (templateId: string): APIEmbed =>
   card({
     author: { name: "bb.haruhime.moe", url: LINKS.bb },
-    title: "BBCode template",
+    title: tx("bbcodeTemplate"),
     url: `${LINKS.bb}/t/${templateId}`,
-    description: "An osu! BBCode template. Open it to preview, copy or remix.",
+    description: tx("anOsuBbcodeTemplate"),
   });

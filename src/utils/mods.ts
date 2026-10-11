@@ -5,7 +5,7 @@
  *       PF as SD, so "DT" finds nightcore plays too.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import type { OsuMod } from "@haruhimemoe/osu";

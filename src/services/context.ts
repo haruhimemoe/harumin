@@ -7,11 +7,14 @@
  *       newest first) with their "Artist - Title [Diff] · 6.21★" labels, for /map's autocomplete.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Thu Oct 8, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { CONTEXT_TTL_MS } from "../constants.ts";
+import { scope } from "../i18n.ts";
 import { createTtlCache } from "./cache.ts";
+
+const t = scope("context");
 
 /** One remembered thing. */
 export type ContextRef =
@@ -64,7 +67,7 @@ export const createChannelContext = (now: () => number = Date.now): ChannelConte
     recentMaps: (channelId) =>
       (history.get(channelId) ?? []).map((beatmapId) => ({
         beatmapId,
-        label: labels.get(beatmapId) ?? `Beatmap #${beatmapId}`,
+        label: labels.get(beatmapId) ?? t("beatmapBeatmapid", { beatmapId }),
       })),
     nameMap: (beatmapId, label) => labels.set(beatmapId, label),
   };

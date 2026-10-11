@@ -5,7 +5,7 @@
  *       problems, page buttons, and card image replies with link buttons.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Thu Oct 8, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import type { Ruleset } from "@haruhimemoe/harumin-config";
@@ -24,12 +24,15 @@ import {
   type SlashCommandSubcommandBuilder,
 } from "discord.js";
 import { notice, problem } from "../embeds/common.ts";
+import { scope, translate } from "../i18n.ts";
 import { parseMapInput } from "../links/index.ts";
 import type { Cards } from "../services/cards.ts";
 import { pickRuleset, playerKey, resolvePlayer } from "../services/players.ts";
 import type { Services } from "../types.ts";
 import { RULESET_CHOICES } from "../utils/format.ts";
 import { noticeParts } from "../views/notice.ts";
+
+const t = scope("shared");
 
 type Builder = SlashCommandBuilder | SlashCommandOptionsOnlyBuilder | SlashCommandSubcommandBuilder;
 
@@ -80,11 +83,7 @@ export const addMapOption = <T extends Builder>(builder: T, required = false): T
   builder.addStringOption((option) =>
     option
       .setName("map")
-      .setDescription(
-        required
-          ? "Beatmap link or id"
-          : "Beatmap link or id (default: the last map in this channel)",
-      )
+      .setDescription(required ? t("beatmapLinkOrId") : t("beatmapLinkOrId2"))
       .setMaxLength(200)
       .setAutocomplete(true)
       .setRequired(required),
@@ -150,9 +149,7 @@ export const tell = async (
 
 /** The /link nudge. */
 export const linkHint = (s: Services, self: boolean, discordId: string): string =>
-  self
-    ? `This Discord account isn't linked to a haruhime.moe account yet, so I don't know your osu! name. Link Discord on ${s.env.HUB_URL}/account (**/link** has the button), or pass \`name\`.`
-    : `<@${discordId}> hasn't linked Discord on haruhime.moe. Pass \`name\` instead.`;
+  self ? t("thisDiscordAccountIsn", { URL: s.env.HUB_URL }) : t("notLinked", { discordId });
 
 /**
  * @function loadPlayer
@@ -190,7 +187,7 @@ export const loadPlayer = async (
       resolution.player.kind === "name"
         ? `**${resolution.player.name}**`
         : `#${resolution.player.osuId}`;
-    return fail(interaction, `osu! has no player ${who}.`);
+    return fail(interaction, translate("common.noPlayer", { who }));
   }
   s.lookups.note(interaction.user.id, profile.username);
   return { profile, ruleset: asked ?? profile.playmode ?? "osu" };
@@ -210,14 +207,11 @@ export const mapFromOption = async (
   if (input) {
     const id = parseMapInput(input);
     if (id) return id;
-    return fail(
-      interaction,
-      "That isn't a beatmap link or id. Open the difficulty on osu! and copy its link (a set link without a difficulty won't do).",
-    );
+    return fail(interaction, t("thatIsnTA"));
   }
   const remembered = s.context.get(interaction.channelId, "map");
   if (remembered) return remembered.beatmapId;
-  return fail(interaction, "Which map? Pass `map`, or link one in this channel first.");
+  return fail(interaction, t("whichMapPassMap"));
 };
 
 /**

@@ -5,7 +5,7 @@
  *       APIEmbed.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import type { Ruleset } from "@haruhimemoe/harumin-config";
@@ -20,6 +20,7 @@ import {
 } from "@haruhimemoe/osu/format";
 import { beatmapUrl, coverUrl, userUrl } from "@haruhimemoe/osu/shapes";
 import type { APIEmbed, APIEmbedField } from "discord.js";
+import { scope } from "../i18n.ts";
 import type { AccuracyPp, MapAttributes, ScorePp } from "../services/pp.ts";
 import {
   completion,
@@ -36,6 +37,8 @@ import {
 } from "../utils/format.ts";
 import type { Session } from "../views/session.ts";
 import { card } from "./common.ts";
+
+const t = scope("osu");
 
 /** A player shown as an embed author: name, flag, rank, avatar, profile link. */
 type AuthorPlayer = Pick<OsuUserProfile, "osuId" | "username" | "avatarUrl" | "countryCode"> & {
@@ -84,7 +87,13 @@ export const profileEmbed = (profile: OsuUserProfile, ruleset: Ruleset): APIEmbe
   const ranks = s.globalRank
     ? `**#${formatInt(s.globalRank)}** global${s.countryRank ? ` · **#${formatInt(s.countryRank)}** ${flag(profile.countryCode) || profile.countryCode || ""}` : ""}`
     : "Unranked";
-  const grades = `SS+ ${formatInt(s.grades.ssh)} · SS ${formatInt(s.grades.ss)} · S+ ${formatInt(s.grades.sh)} · S ${formatInt(s.grades.s)} · A ${formatInt(s.grades.a)}`;
+  const grades = t("ssSshSsSs", {
+    ssh: formatInt(s.grades.ssh),
+    ss: formatInt(s.grades.ss),
+    sh: formatInt(s.grades.sh),
+    s: formatInt(s.grades.s),
+    a: formatInt(s.grades.a),
+  });
   return card({
     author: { name: `${RULESET_NAMES[ruleset]} profile`, url: userUrl(profile.osuId) },
     title: truncate(`${profile.username} ${flag(profile.countryCode)}`.trim(), 256),
@@ -93,11 +102,21 @@ export const profileEmbed = (profile: OsuUserProfile, ruleset: Ruleset): APIEmbe
     description: [
       ranks,
       `**${formatPp(s.pp)}** · ${s.accuracy.toFixed(2)}% accuracy`,
-      `Level ${s.level.toFixed(2)} · ${formatInt(s.playCount)} plays · ${formatPlayTime(s.playTime)}`,
-      `Max combo ${formatInt(s.maxCombo)} · Ranked score ${formatInt(s.rankedScore)}`,
+      t("levelTofixedPlaycountPlays", {
+        toFixed: s.level.toFixed(2),
+        playCount: formatInt(s.playCount),
+        playTime: formatPlayTime(s.playTime),
+      }),
+      t("maxComboMaxcomboRanked", {
+        maxCombo: formatInt(s.maxCombo),
+        rankedScore: formatInt(s.rankedScore),
+      }),
       grades,
       profile.joinDate
-        ? `Joined ${discordTime(profile.joinDate, "D")}${profile.supporter ? " · supporter" : ""}`
+        ? t("joined", {
+            date: discordTime(profile.joinDate, "D"),
+            supporter: String(profile.supporter),
+          })
         : "",
     ]
       .filter(Boolean)
@@ -150,7 +169,7 @@ export const scoreEmbed = (
 ): APIEmbed => {
   const player: AuthorPlayer | null = options.player ?? (score.user ? { ...score.user } : null);
   const lines = scoreLines(score, options.pp);
-  if (options.tries && options.tries > 1) lines.push(`Try #${options.tries}`);
+  if (options.tries && options.tries > 1) lines.push(t("tryTries", { tries: options.tries }));
   if (options.session && options.session.today > 1) {
     lines.push(
       [`${options.session.today} today`, options.session.note].filter(Boolean).join(" · "),
@@ -199,11 +218,14 @@ export const scoreListEmbed = (
     ...(options.url ? { url: options.url } : {}),
     description: truncate(
       [options.note ? `-# ${options.note}` : "", ...body].filter(Boolean).join("\n\n") ||
-        "Nothing here.",
+        t("nothingHere"),
       4096,
     ),
     footer: {
-      text: options.pages > 1 ? `Page ${options.page} of ${options.pages} · harumin` : "harumin",
+      text:
+        options.pages > 1
+          ? t("pagePageOfPages", { page: options.page, pages: options.pages })
+          : "harumin",
     },
   });
 };
@@ -232,7 +254,12 @@ export const mapEmbed = (
       name: "Difficulty",
       value: [
         `**${formatStars(stars)}★** · ${formatMods(options.mods)}`,
-        `CS ${formatStat(attrs?.cs ?? map.cs)} · AR ${formatStat(attrs?.ar ?? map.ar)} · OD ${formatStat(attrs?.od ?? map.od)} · HP ${formatStat(attrs?.hp ?? map.hp)}`,
+        t("csCsArAr", {
+          cs: formatStat(attrs?.cs ?? map.cs),
+          ar: formatStat(attrs?.ar ?? map.ar),
+          od: formatStat(attrs?.od ?? map.od),
+          hp: formatStat(attrs?.hp ?? map.hp),
+        }),
       ].join("\n"),
       inline: true,
     },
@@ -240,7 +267,7 @@ export const mapEmbed = (
       name: "Length",
       value: [
         `${formatDuration(map.lengthSeconds / rate)} · ${formatBpm(map.bpm * rate)} BPM`,
-        `${map.maxCombo !== null ? `x${formatInt(attrs?.maxCombo ?? map.maxCombo)} · ` : ""}${map.status ?? "unknown"}`,
+        `${map.maxCombo !== null ? `x${formatInt(attrs?.maxCombo ?? map.maxCombo)} · ` : ""}${map.status ?? t("unknownStatus")}`,
       ].join("\n"),
       inline: true,
     },
@@ -255,7 +282,7 @@ export const mapEmbed = (
   }
   return card({
     author: {
-      name: `Mapped by ${map.creator}`,
+      name: t("mappedByCreator", { creator: map.creator }),
       ...(map.creatorId ? { url: userUrl(map.creatorId) } : {}),
     },
     title: truncate(`${map.artist} - ${map.title} [${map.version}]`, 256),
@@ -292,9 +319,12 @@ export const leaderboardEmbed = (
             : "**?**";
           return `\`#${String(options.start + i + 1).padStart(2, " ")}\` ${name} · ${GRADE_TEXT[score.rank]} · ${formatMods(score.mods)} · ${formatPp(score.pp)} · ${formatAccuracy(score.accuracy)} · x${formatInt(score.maxCombo)}`;
         }),
-      ].join("\n") || "No scores.",
+      ].join("\n") || t("noScores"),
     footer: {
-      text: options.pages > 1 ? `Page ${options.page} of ${options.pages} · harumin` : "harumin",
+      text:
+        options.pages > 1
+          ? t("pagePageOfPages", { page: options.page, pages: options.pages })
+          : "harumin",
     },
   });
 

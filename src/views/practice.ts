@@ -9,7 +9,7 @@
  *       median played length of the bucket's plays in the top 50.
  * @author David @dvhsh (https://dvh.sh)
  * @created Thu Oct 8, 2026
- * @modified Fri Oct 9, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 /** The mod buckets. /practice offers all but FM (pools has no FM lens). */

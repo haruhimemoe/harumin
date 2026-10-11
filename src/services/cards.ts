@@ -7,7 +7,7 @@
  *       or confirmation costs no request.
  * @author David @dvhsh (https://dvh.sh)
  * @created Wed Oct 7, 2026
- * @modified Thu Oct 8, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import {
@@ -47,6 +47,7 @@ import {
 } from "@haruhimemoe/harumin-config";
 import type { z } from "zod";
 import { USER_AGENT } from "../constants.ts";
+import { currentLocale } from "../i18n.ts";
 import { createTtlCache } from "./cache.ts";
 
 /** Notices repeat word for word, so a drawn one is kept a day (500 at most). */
@@ -141,6 +142,8 @@ export const createCards = ({
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
           Accept: "image/png",
+          // The card's words follow the asker's language (src/i18n.ts).
+          "Accept-Language": currentLocale(),
           "User-Agent": USER_AGENT,
         },
         body: JSON.stringify(parsed.data),

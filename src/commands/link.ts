@@ -5,14 +5,17 @@
  *       osu!, link Discord; harumin only reads it. Ephemeral.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Thu Oct 8, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { userUrl } from "@haruhimemoe/osu/shapes";
 import { MessageFlags, SlashCommandBuilder } from "discord.js";
 import { linkEmbed } from "../embeds/bot.ts";
+import { scope } from "../i18n.ts";
 import type { Command } from "../types.ts";
 import { imageOrEmbed, linkButtons } from "./shared.ts";
+
+const t = scope("link");
 
 export const link: Command = {
   category: "bot",
@@ -33,7 +36,7 @@ export const link: Command = {
         () => linkEmbed(account, s.env.HUB_URL),
         linkButtons([
           {
-            label: account ? "Manage on haruhime.moe" : "Link on haruhime.moe",
+            label: account ? t("manageOnHaruhimeMoe") : t("linkOnHaruhimeMoe"),
             url: `${s.env.HUB_URL}/account`,
           },
           ...(account ? [{ label: "osu! profile", url: userUrl(account.osuId) }] : []),

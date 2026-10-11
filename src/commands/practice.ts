@@ -10,7 +10,7 @@
  *       The answer is a pool card with an "Open as a pack" link (a /k# key: nothing is hosted).
  * @author David @dvhsh (https://dvh.sh)
  * @created Thu Oct 8, 2026
- * @modified Fri Oct 9, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import type { OsuScore } from "@haruhimemoe/osu";
@@ -19,6 +19,7 @@ import { encodePackKey } from "@haruhimemoe/pool";
 import { SlashCommandBuilder } from "discord.js";
 import { LINKS } from "../constants.ts";
 import { card } from "../embeds/common.ts";
+import { scope } from "../i18n.ts";
 import { createTtlCache } from "../services/cache.ts";
 import type { Command, Services } from "../types.ts";
 import {
@@ -38,6 +39,8 @@ import {
 } from "../views/practice.ts";
 import { toPracticeCard } from "../views/toolCards.ts";
 import { addPlayerOptions, fail, imageOrEmbed, linkButtons, loadPlayer } from "./shared.ts";
+
+const t = scope("practice");
 
 /** The buckets /practice offers (pools has no FM lens). */
 const PRACTICE_BUCKETS = ["NM", "HD", "HR", "DT"] as const;
@@ -214,7 +217,9 @@ const clock = (seconds: number): string => {
  * @returns {string} "1:00 to 2:30", or "over 7:00" with no cap
  */
 const lengthText = (range: LengthRange): string =>
-  range.max === null ? `over ${clock(range.min)}` : `${clock(range.min)} to ${clock(range.max)}`;
+  range.max === null
+    ? t("over", { min: clock(range.min) })
+    : t("range", { min: clock(range.min), max: clock(range.max) });
 
 export const practice: Command = {
   category: "haruhime",
@@ -281,15 +286,8 @@ export const practice: Command = {
       if (typeof result === "object" || result === "none") picks.set(key, result);
     }
     if (result === "no-plays")
-      return void (await fail(
-        interaction,
-        `No ${bucket ? `${bucket} ` : ""}plays in your top 100 to go on.`,
-      ));
-    if (result === "fm")
-      return void (await fail(
-        interaction,
-        "Your top 100 is mostly mixed mods. Pick `mods` (NM, HD, HR or DT).",
-      ));
+      return void (await fail(interaction, t("noPlays", { bucket: bucket ?? "none" })));
+    if (result === "fm") return void (await fail(interaction, t("yourTop100Is")));
     if (result === "unavailable")
       return void (await fail(interaction, "pools.haruhime.moe didn't answer. Try again soon."));
     if (result === "none")
@@ -336,8 +334,8 @@ export const practice: Command = {
               .slice(0, 4000),
           }),
         linkButtons([
-          { label: "Open as a pack", url: packUrl },
-          { label: "First map", url: beatmapUrl(first.beatmapId) },
+          { label: t("openAsAPack"), url: packUrl },
+          { label: t("firstMap"), url: beatmapUrl(first.beatmapId) },
         ]),
       ),
     );

@@ -4,15 +4,18 @@
  *       pack when none is given).
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Thu Oct 8, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { extractPackKey } from "@haruhimemoe/pool";
 import { SlashCommandBuilder } from "discord.js";
+import { scope } from "../i18n.ts";
 import { refFromUrl } from "../links/index.ts";
 import type { Command } from "../types.ts";
 import { type FoundPool, findPack, findPackKey, renderPoolCard } from "../views/tools.ts";
 import { fail } from "./shared.ts";
+
+const t = scope("pack");
 
 const SLUG = /^[A-Za-z0-9_-]{10}$/;
 
@@ -43,25 +46,20 @@ export const pack: Command = {
         }
       }
       if (!key && !slug) {
-        await fail(interaction, "That isn't a pack link, code or key.");
+        await fail(interaction, t("thatIsnTA"));
         return;
       }
     } else {
       slug = s.context.get(interaction.channelId, "pack")?.slug ?? null;
       if (!slug) {
-        await fail(interaction, "Which pack? Pass `pack`, or link one here first.");
+        await fail(interaction, t("whichPackPassPack"));
         return;
       }
     }
     await interaction.deferReply();
     const found: FoundPool | null = key ? findPackKey(key) : await findPack(s, slug as string);
     if (!found) {
-      await fail(
-        interaction,
-        key
-          ? "That pack key doesn't decode. Copy it again from packs."
-          : "No public pack with that code.",
-      );
+      await fail(interaction, key ? t("thatPackKeyDoesn") : t("noPublicPackWith"));
       return;
     }
     if (slug) s.context.set(interaction.channelId, { key: "pack", slug });
