@@ -2,27 +2,36 @@
  * @file src/commands/render.ts
  * @desc /render: a replay rendered to video by o!rdr, from an .osr attachment or a score link
  *       (osu.ppy.sh/scores/<id>, or /scores/<ruleset>/<id> for a stable score), whose replay
- *       harumin downloads from osu! first. The replay waits in harumin's line
- *       (one start per 5 minutes until there's an o!rdr key) and the reply is edited as it moves:
- *       its place, o!rdr's progress, then the video link. Edits go through the message, not the
- *       interaction, so a wait past Discord's 15 minute interaction window still lands.
+ *       harumin downloads from osu! first. The reply is the replay's score card with one status
+ *       line above it, edited as the replay moves through harumin's line (one start per 5
+ *       minutes until there's an o!rdr key): its place, o!rdr's progress, then the video link.
+ *       Edits go through the message, not the interaction, so a wait past Discord's 15 minute
+ *       interaction window still lands. The Render button on an .osr card (render:osr:<channel>:
+ *       <message>) starts the same thing from the posted file.
  * @author David @dvhsh (https://dvh.sh)
  * @created Sat Oct 10, 2026
  * @modified Sat Oct 10, 2026
  */
 
 import { OsuApiError } from "@haruhimemoe/osu";
-import { type APIEmbed, MessageFlags, SlashCommandBuilder } from "discord.js";
-import { COLORS } from "../constants.ts";
-import type { RenderJob, RenderState } from "../services/renders.ts";
-import type { Command } from "../types.ts";
+import {
+  type ButtonInteraction,
+  type ChatInputCommandInteraction,
+  type Message,
+  SlashCommandBuilder,
+} from "discord.js";
+import type { RenderState } from "../services/renders.ts";
+import type { Command, Services } from "../types.ts";
+import {
+  loadReplay,
+  MAX_REPLAY_BYTES,
+  REPLAY_PROBLEMS,
+  replayCard,
+  replayLine,
+} from "../views/replay.ts";
 import { fail } from "./shared.ts";
 
-/** Biggest .osr taken. Replays of long maps run a few MB; o!rdr refuses huge ones anyway. */
-const MAX_REPLAY_BYTES = 10 * 1024 * 1024;
-
-const SCORE_RULESETS = ["osu", "taiko", "fruits", "mania"] as const;
-type ScoreRuleset = (typeof SCORE_RULESETS)[number];
+type ScoreRuleset = "osu" | "taiko" | "fruits" | "mania";
 
 /** A score to download: its id, with the ruleset when it's a stable score's legacy id. */
 export type ScoreRef = { id: number; ruleset?: ScoreRuleset };
@@ -49,7 +58,7 @@ export const parseScoreRef = (text: string): ScoreRef | null => {
 /**
  * @function minutes
  * @param ms {number} a wait
- * @returns {string} "now", "about 1 minute", "about 7 minutes"
+ * @returns {string} "now", "in about 1 minute", "in about 7 minutes"
  */
 const minutes = (ms: number): string => {
   const count = Math.ceil(ms / 60_000);
@@ -58,37 +67,91 @@ const minutes = (ms: number): string => {
 };
 
 /**
- * @function renderEmbed
+ * @function renderStatus
  * @param state {RenderState} where the render is
- * @param filename {string} the replay's file name
- * @returns {APIEmbed} the reply for that state
+ * @returns {string} the line above the card
  */
-export const renderEmbed = (state: RenderState, filename: string): APIEmbed => {
+export const renderStatus = (state: RenderState): string => {
   switch (state.kind) {
     case "queued":
-      return {
-        color: COLORS.warn,
-        title: "Replay in line",
-        description: `\`${filename}\` is #${state.position} in line and starts ${minutes(state.startsInMs)}.`,
-      };
+      return `Render #${state.position} in line, starts ${minutes(state.startsInMs)}.`;
     case "rendering":
-      return {
-        color: COLORS.pink,
-        title: "Rendering",
-        description: `\`${filename}\`: ${state.progress}`,
-      };
+      return `Rendering: ${state.progress}`;
     case "done":
-      return {
-        color: COLORS.ok,
-        title: "Render done",
-        description: `\`${filename}\`: ${state.videoUrl}`,
-      };
+      return `Render done: ${state.videoUrl}`;
     case "failed":
-      return {
-        color: COLORS.bad,
-        title: "Render failed",
-        description: `\`${filename}\`: ${state.message}`,
-      };
+      return `Render failed. ${state.message}`;
+  }
+};
+
+/**
+ * @function fetchReplay
+ * @param url {string} a Discord attachment URL
+ * @returns {Promise<Uint8Array | null>} its bytes, or null when Discord didn't hand them over
+ */
+const fetchReplay = async (url: string): Promise<Uint8Array | null> => {
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+    if (!response.ok) return null;
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    return bytes.length <= MAX_REPLAY_BYTES ? bytes : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * @function startRender
+ * @param interaction {ChatInputCommandInteraction | ButtonInteraction} already deferred
+ * @param s {Services} services
+ * @param bytes {Uint8Array} the .osr
+ * @param skin {string} the o!rdr skin
+ * @returns {Promise<void>} shows the replay's card and puts it in the render line
+ */
+export const startRender = async (
+  interaction: ChatInputCommandInteraction | ButtonInteraction,
+  s: Services,
+  bytes: Uint8Array,
+  skin: string,
+): Promise<void> => {
+  let loaded: Awaited<ReturnType<typeof loadReplay>>;
+  try {
+    loaded = await loadReplay(s, bytes);
+  } catch {
+    await fail(
+      interaction,
+      "osu! didn't answer, so I couldn't find the replay's map. Try again in a minute.",
+    );
+    return;
+  }
+  if (!loaded.ok) {
+    await fail(interaction, REPLAY_PROBLEMS[loaded.problem]);
+    return;
+  }
+  const { replay } = loaded;
+  const png = await replayCard(s, replay);
+  // Without a card the map line goes under the status, so the reply still says what it is.
+  const below = png ? "" : `\n${replayLine(replay)}`;
+  const message: Message = await interaction.editReply({
+    content: `Getting in line...${below}`,
+    embeds: [],
+    files: png ? [{ attachment: png, name: "replay.png" }] : [],
+  });
+  const say = (line: string) => {
+    message.edit({ content: `${line}${below}` }).catch(() => undefined);
+  };
+  const taken = s.renders.enqueue({
+    userId: interaction.user.id,
+    source: { replay: bytes, filename: "replay.osr" },
+    skin,
+    onUpdate: (state) => say(renderStatus(state)),
+  });
+  if (!taken.ok) {
+    say(
+      taken.reason === "already"
+        ? "You already have a replay in line. Wait for it to start."
+        : "The render line is full. Try again in a few minutes.",
+    );
   }
 };
 
@@ -111,8 +174,7 @@ export const render: Command = {
   async execute(interaction, s) {
     const replay = interaction.options.getAttachment("replay");
     const scoreText = interaction.options.getString("score");
-    let source: RenderJob["source"];
-    let filename: string;
+    const skin = interaction.options.getString("skin")?.trim() || "default";
     if (replay) {
       if (!replay.name.toLowerCase().endsWith(".osr")) {
         await fail(interaction, "That isn't a replay. Attach the `.osr` file osu! saves.");
@@ -122,73 +184,58 @@ export const render: Command = {
         await fail(interaction, "That replay is over 10 MB, which is more than o!rdr takes.");
         return;
       }
-      source = { replayUrl: replay.url };
-      filename = replay.name.slice(0, 80);
-    } else if (scoreText) {
-      const ref = parseScoreRef(scoreText);
-      if (!ref) {
-        await fail(interaction, "That isn't a score link. Copy it from the score's page on osu!.");
-        return;
-      }
       await interaction.deferReply();
-      let bytes: Uint8Array | null;
-      try {
-        bytes = await s.osu.getScoreReplay(ref.id, ref.ruleset ? { ruleset: ref.ruleset } : {});
-      } catch (error) {
-        await fail(
-          interaction,
-          error instanceof OsuApiError && error.code === "budget"
-            ? "osu! is busy right now. Try again in a minute."
-            : "osu! didn't hand over that replay. Download it from the score page and attach the `.osr` instead.",
-        );
-        return;
-      }
+      const bytes = await fetchReplay(replay.url);
       if (!bytes) {
-        await fail(interaction, "osu! has no replay for that score. Only some scores keep one.");
+        await fail(interaction, "Discord didn't hand over that file. Try attaching it again.");
         return;
       }
-      filename = `score-${ref.ruleset ? `${ref.ruleset}-` : ""}${ref.id}.osr`;
-      source = { replay: bytes, filename };
-    } else {
+      await startRender(interaction, s, bytes, skin);
+      return;
+    }
+    if (!scoreText) {
       await fail(interaction, "Give a `score` link or attach a `replay` (.osr).");
       return;
     }
-    const skin = interaction.options.getString("skin")?.trim() || "default";
-    // Reply first so there's a message to edit; the first queued update fills it in.
-    const first = { embeds: [{ color: COLORS.warn, description: "Getting in line..." }] };
-    const message = interaction.deferred
-      ? await interaction.editReply(first)
-      : (await interaction.reply({ ...first, withResponse: true })).resource?.message;
-    let last = "";
-    const taken = s.renders.enqueue({
-      userId: interaction.user.id,
-      source,
-      skin,
-      onUpdate: (state) => {
-        const embed = renderEmbed(state, filename);
-        const key = JSON.stringify(embed);
-        if (key === last) return;
-        last = key;
-        const edit = message
-          ? message.edit({ embeds: [embed] })
-          : interaction.editReply({ embeds: [embed] });
-        edit.catch(() => undefined);
-      },
-    });
-    if (!taken.ok) {
-      await interaction.deleteReply().catch(() => undefined);
-      await interaction.followUp({
-        embeds: [
-          {
-            color: COLORS.bad,
-            description:
-              taken.reason === "already"
-                ? "You already have a replay in line. Wait for it to start."
-                : "The render line is full. Try again in a few minutes.",
-          },
-        ],
-        flags: MessageFlags.Ephemeral,
-      });
+    const ref = parseScoreRef(scoreText);
+    if (!ref) {
+      await fail(interaction, "That isn't a score link. Copy it from the score's page on osu!.");
+      return;
     }
+    await interaction.deferReply();
+    let bytes: Uint8Array | null;
+    try {
+      bytes = await s.osu.getScoreReplay(ref.id, ref.ruleset ? { ruleset: ref.ruleset } : {});
+    } catch (error) {
+      await fail(
+        interaction,
+        error instanceof OsuApiError && error.code === "budget"
+          ? "osu! is busy right now. Try again in a minute."
+          : "osu! didn't hand over that replay. Download it from the score page and attach the `.osr` instead.",
+      );
+      return;
+    }
+    if (!bytes) {
+      await fail(interaction, "osu! has no replay for that score. Only some scores keep one.");
+      return;
+    }
+    await startRender(interaction, s, bytes, skin);
+  },
+  /** render:osr:<channelId>:<messageId>, from an .osr card: renders the posted file. */
+  async button(interaction, s, args) {
+    const [kind, channelId, messageId] = args;
+    if (kind !== "osr" || !channelId || !messageId) return;
+    await interaction.deferReply();
+    const channel = await interaction.client.channels.fetch(channelId).catch(() => null);
+    const posted = channel?.isTextBased()
+      ? await channel.messages.fetch(messageId).catch(() => null)
+      : null;
+    const file = posted?.attachments.find((a) => a.name.toLowerCase().endsWith(".osr"));
+    const bytes = file && file.size <= MAX_REPLAY_BYTES ? await fetchReplay(file.url) : null;
+    if (!bytes) {
+      await fail(interaction, "That replay isn't there anymore. Post it again or use **/render**.");
+      return;
+    }
+    await startRender(interaction, s, bytes, "default");
   },
 };

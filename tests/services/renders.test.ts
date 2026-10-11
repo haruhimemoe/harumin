@@ -93,18 +93,14 @@ describe("render queue", () => {
   });
 });
 
-describe("render reply", () => {
+describe("render status", () => {
   it("words each state", async () => {
-    const { renderEmbed } = await import("../../src/commands/render.ts");
-    expect(
-      renderEmbed({ kind: "queued", position: 2, startsInMs: 61_000 }, "a.osr").description,
-    ).toBe("`a.osr` is #2 in line and starts in about 2 minutes.");
-    expect(
-      renderEmbed({ kind: "queued", position: 1, startsInMs: 0 }, "a.osr").description,
-    ).toContain("starts now");
-    expect(renderEmbed({ kind: "done", videoUrl: "https://x" }, "a.osr").description).toBe(
-      "`a.osr`: https://x",
+    const { renderStatus } = await import("../../src/commands/render.ts");
+    expect(renderStatus({ kind: "queued", position: 2, startsInMs: 61_000 })).toBe(
+      "Render #2 in line, starts in about 2 minutes.",
     );
+    expect(renderStatus({ kind: "queued", position: 1, startsInMs: 0 })).toContain("starts now");
+    expect(renderStatus({ kind: "done", videoUrl: "https://x" })).toBe("Render done: https://x");
   });
 });
 

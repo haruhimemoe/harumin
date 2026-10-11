@@ -2,13 +2,15 @@
  * @file src/listeners/links.ts
  * @desc The messageCreate listener: notes who was seen, remembers each channel's last map, match,
  *       pack and pool, and answers links with a card when the server has that card on (the
- *       dashboard's toggles). Bots, webhooks and DMs are ignored; one link gets one card per
- *       channel per minute; a channel where harumin can't post embeds gets nothing.
+ *       dashboard's toggles), and .osr files with the replay's score card and a Render button.
+ *       Bots, webhooks and DMs are ignored; one link gets one card per channel per minute; a
+ *       channel where harumin can't post embeds gets nothing.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
  * @modified Thu Oct 8, 2026
  */
 
+import { beatmapUrl } from "@haruhimemoe/osu/shapes";
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -25,6 +27,7 @@ import { findLinks, type LinkRef, refId, settingFor } from "../links/index.ts";
 import { createTtlCache } from "../services/cache.ts";
 import type { Services } from "../types.ts";
 import { renderMap } from "../views/map.ts";
+import { loadReplay, MAX_REPLAY_BYTES, replayCard, replayLine } from "../views/replay.ts";
 import { findPack, findPackKey, findPool, renderPoolCard } from "../views/tools.ts";
 
 /**
@@ -95,6 +98,50 @@ export const renderLink = async (s: Services, ref: LinkRef): Promise<CardMessage
 };
 
 /**
+ * @function renderReplay
+ * @param s {Services} services
+ * @param bytes {Uint8Array} a posted .osr
+ * @param message {{ channelId: string; id: string }} where it was posted (for the Render button)
+ * @returns {Promise<(CardMessage & { content; beatmapId }) | null>} its score card with a Render
+ *          button and the map's id, or null when it isn't a replay of a map osu! knows
+ */
+export const renderReplay = async (
+  s: Services,
+  bytes: Uint8Array,
+  message: { channelId: string; id: string },
+): Promise<(CardMessage & { content: string; beatmapId: number }) | null> => {
+  const loaded = await loadReplay(s, bytes);
+  if (!loaded.ok) return null;
+  const png = await replayCard(s, loaded.replay);
+  const components = [
+    new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`render:osr:${message.channelId}:${message.id}`)
+        .setLabel("Render")
+        .setStyle(ButtonStyle.Secondary),
+    ),
+    ...linkButtons([{ label: "Beatmap", url: beatmapUrl(loaded.replay.map.beatmapId) }]),
+  ];
+  return {
+    content: png ? "" : replayLine(loaded.replay),
+    embeds: [],
+    files: png ? [{ attachment: png, name: "replay.png" }] : [],
+    components,
+    beatmapId: loaded.replay.map.beatmapId,
+  };
+};
+
+/**
+ * @function postedReplays
+ * @param message {Message} a chat message
+ * @returns {{ url: string }[]} its .osr attachments small enough to read (at most 3)
+ */
+const postedReplays = (message: Message) =>
+  [...message.attachments.values()]
+    .filter((a) => a.name.toLowerCase().endsWith(".osr") && a.size <= MAX_REPLAY_BYTES)
+    .slice(0, 3);
+
+/**
  * @function createLinkListener
  * @param s {Services} services
  * @param log {(message: string, error?: unknown) => void} where failures go
@@ -109,12 +156,28 @@ export const createLinkListener = (
     if (message.author.bot || message.webhookId || !message.inGuild()) return;
     s.members.seen(message.guildId, message.author.id);
     const refs = findLinks(message.content);
-    if (refs.length === 0) return;
+    const replays = postedReplays(message);
+    if (refs.length === 0 && replays.length === 0) return;
     for (const ref of refs) remember(s, message.channelId, ref);
     const me = message.guild.members.me;
     const perms = me ? message.channel.permissionsFor(me) : null;
     if (!perms?.has([PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks])) return;
     const settings = await s.settings.get(message.guildId);
+    if (settings.autoEmbeds.replay) {
+      for (const file of replays) {
+        try {
+          const response = await fetch(file.url, { signal: AbortSignal.timeout(15_000) });
+          if (!response.ok) continue;
+          const card = await renderReplay(s, new Uint8Array(await response.arrayBuffer()), message);
+          if (!card) continue;
+          const { beatmapId, ...reply } = card;
+          s.context.rememberMap(message.channelId, beatmapId);
+          await message.reply({ ...reply, allowedMentions: { repliedUser: false, parse: [] } });
+        } catch (error) {
+          log("replay card failed", error);
+        }
+      }
+    }
     for (const ref of refs) {
       if (!settings.autoEmbeds[settingFor(ref)]) continue;
       const key = `${message.channelId}:${refId(ref)}`;

@@ -24,6 +24,7 @@ export type Osu = {
   getMatch: OsuClient["getMatch"];
   getUsers: OsuClient["getUsers"];
   getScoreReplay: OsuClient["getScoreReplay"];
+  getBeatmapByChecksum: OsuClient["getBeatmapByChecksum"];
 };
 
 /**
@@ -50,6 +51,8 @@ export const bindBudget = (client: OsuClient, budget: Budget): Osu => {
     getMatch: (match, options = {}) => client.getMatch(match, { ...options, beforeCall }),
     getUsers: (ids, options = {}) => client.getUsers(ids, { ...options, beforeCall }),
     getScoreReplay: (id, options = {}) => client.getScoreReplay(id, { ...options, beforeCall }),
+    getBeatmapByChecksum: (md5, options = {}) =>
+      client.getBeatmapByChecksum(md5, { ...options, beforeCall }),
   };
 };
 

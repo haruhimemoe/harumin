@@ -36,7 +36,7 @@ Sign in on [haruhime.moe/account](https://haruhime.moe/account) with osu!, then 
 
 ## Link cards
 
-harumin answers beatmap, pack and pool links with a card. Match and bb links can get one too. Server managers turn each kind on or off on the [dashboard](https://harumin.haruhime.moe/dashboard).
+harumin answers beatmap, pack and pool links with a card, and `.osr` replays posted in chat with the replay's score card and a Render button. Match and bb links can get one too. Server managers turn each kind on or off on the [dashboard](https://harumin.haruhime.moe/dashboard).
 
 ## Running your own
 
