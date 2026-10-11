@@ -38,7 +38,7 @@ const setup = (createRender: () => Promise<{ renderId: number }>) => {
       states,
       job: {
         userId,
-        replayUrl: `https://cdn/${userId}.osr`,
+        source: { replayUrl: `https://cdn/${userId}.osr` },
         skin: "default",
         onUpdate: (s: RenderState) => states.push(s),
       },
@@ -105,5 +105,16 @@ describe("render reply", () => {
     expect(renderEmbed({ kind: "done", videoUrl: "https://x" }, "a.osr").description).toBe(
       "`a.osr`: https://x",
     );
+  });
+});
+
+describe("score links", () => {
+  it("reads lazer and stable score links and bare ids", async () => {
+    const { parseScoreRef } = await import("../../src/commands/render.ts");
+    expect(parseScoreRef("https://osu.ppy.sh/scores/4123456789")).toEqual({ id: 4123456789 });
+    expect(parseScoreRef("osu.ppy.sh/scores/mania/123/")).toEqual({ id: 123, ruleset: "mania" });
+    expect(parseScoreRef(" 55 ")).toEqual({ id: 55 });
+    expect(parseScoreRef("https://osu.ppy.sh/beatmaps/1")).toBeNull();
+    expect(parseScoreRef("https://evil.example/scores/1")).toBeNull();
   });
 });

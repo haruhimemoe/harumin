@@ -23,6 +23,7 @@ export type Osu = {
   getStarRating: OsuClient["getStarRating"];
   getMatch: OsuClient["getMatch"];
   getUsers: OsuClient["getUsers"];
+  getScoreReplay: OsuClient["getScoreReplay"];
 };
 
 /**
@@ -48,6 +49,7 @@ export const bindBudget = (client: OsuClient, budget: Budget): Osu => {
       client.getStarRating(map, mods, { ...options, beforeCall }),
     getMatch: (match, options = {}) => client.getMatch(match, { ...options, beforeCall }),
     getUsers: (ids, options = {}) => client.getUsers(ids, { ...options, beforeCall }),
+    getScoreReplay: (id, options = {}) => client.getScoreReplay(id, { ...options, beforeCall }),
   };
 };
 

@@ -27,7 +27,8 @@ export type RenderState =
 export type RenderJob = {
   /** Who asked (one job each). */
   userId: string;
-  replayUrl: string;
+  /** A link o!rdr fetches (an attachment), or the .osr itself (a score downloaded from osu!). */
+  source: { replayUrl: string } | { replay: Uint8Array; filename: string };
   skin: string;
   onUpdate: (state: RenderState) => void;
 };
@@ -110,7 +111,7 @@ export const createRenders = (
       const job = line[0] as RenderJob;
       try {
         const { renderId } = await ordr.createRender({
-          replayUrl: job.replayUrl,
+          ...job.source,
           skin: job.skin,
           resolution: "1280x720",
         });

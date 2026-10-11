@@ -20,7 +20,7 @@ An osu! Discord bot from [haruhime.moe](https://haruhime.moe). Slash commands on
 | `/server` | This server's linked players, ranked |
 | `/track` | Post a player's new top plays in a channel |
 | `/matchcost` | Match costs for a multiplayer match |
-| `/render` | A replay (`.osr`) rendered to video by [o!rdr](https://ordr.issou.best). Renders wait in line, one start every 5 minutes for now |
+| `/render` | A score link's replay, or an `.osr`, rendered to video by [o!rdr](https://ordr.issou.best). Renders wait in line, one start every 5 minutes for now |
 | `/pack` | A pack from packs.haruhime.moe |
 | `/pool view`, `/pool check`, `/pool parse` | Pools from pools.haruhime.moe, osu!'s content rules check, and reading a pasted pool |
 | `/pool fromtop` | A draft tournament pool from your top plays, to open on packs or build on pools |
