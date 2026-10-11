@@ -6,7 +6,7 @@
  *       image can't be had.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Wed Oct 7, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import type { OsuMod } from "@haruhimemoe/osu";
@@ -14,6 +14,7 @@ import { beatmapUrl } from "@haruhimemoe/osu/shapes";
 import type { ActionRowBuilder, APIEmbed, MessageActionRowComponentBuilder } from "discord.js";
 import { linkButtons } from "../commands/shared.ts";
 import { mapEmbed } from "../embeds/osu.ts";
+import { translate } from "../i18n.ts";
 import type { Services } from "../types.ts";
 import { mapLabel } from "../utils/format.ts";
 import { toMapCard } from "./cards.ts";
@@ -52,7 +53,9 @@ export const renderMap = async (
       .catch(() => null);
   }
   const data = { mods, stars, attrs: local?.attrs ?? null, pps: local?.pps ?? null };
-  const components = linkButtons([{ label: "Beatmap", url: beatmapUrl(beatmapId) }]);
+  const components = linkButtons([
+    { label: translate("common.beatmap"), url: beatmapUrl(beatmapId) },
+  ]);
   const png = await s.cards.draw("map", toMapCard(map, data));
   return png
     ? { embeds: [], files: [{ attachment: png, name: "map.png" }], components }

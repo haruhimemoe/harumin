@@ -3,7 +3,7 @@
  * @desc mapLimit: run async work over a list with at most N at once, results in input order.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 /**

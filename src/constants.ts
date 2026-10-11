@@ -3,7 +3,7 @@
  * @desc Fixed values: version, colors, links, limits and the invite permissions.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import pkg from "../package.json" with { type: "json" };

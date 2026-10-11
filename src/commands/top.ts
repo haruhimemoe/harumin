@@ -5,7 +5,7 @@
  *       kept two minutes, so paging costs no osu! calls.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Wed Oct 7, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import type { Ruleset } from "@haruhimemoe/harumin-config";
@@ -14,6 +14,7 @@ import { formatMods } from "@haruhimemoe/osu/format";
 import { userUrl } from "@haruhimemoe/osu/shapes";
 import { type ButtonInteraction, SlashCommandBuilder } from "discord.js";
 import { scoreListEmbed } from "../embeds/osu.ts";
+import { scope } from "../i18n.ts";
 import { createTtlCache } from "../services/cache.ts";
 import type { Command, Services } from "../types.ts";
 import { RULESET_NAMES } from "../utils/format.ts";
@@ -28,6 +29,10 @@ import {
   loadPlayer,
   pageButtons,
 } from "./shared.ts";
+
+const tx = scope("top");
+
+const t = scope("top");
 
 type TopList = { profile: OsuUserProfile; scores: OsuScore[] };
 const lists = createTtlCache<string, TopList>(120_000, 500);
@@ -60,7 +65,10 @@ const render = async (s: Services, list: TopList, view: View) => {
   const { items, page, pages } = pageOf(arranged, view.page);
   const note = [
     view.sort !== "pp" || view.reverse
-      ? `Sorted by ${SORT_LABELS[view.sort]}${view.reverse ? ", reversed" : ""}`
+      ? t("sortedBySortReversed", {
+          sort: SORT_LABELS[view.sort],
+          reversed: String(view.reverse),
+        })
       : "",
     filter ? `${formatMods(filter)} only · ${arranged.length} of ${list.scores.length}` : "",
   ]
@@ -80,7 +88,7 @@ const render = async (s: Services, list: TopList, view: View) => {
     toScoreListCard(items, {
       profile: list.profile,
       ruleset: view.ruleset,
-      title: "Top plays",
+      title: tx("topPlays"),
       note: note || null,
       page,
       pages,
@@ -91,7 +99,7 @@ const render = async (s: Services, list: TopList, view: View) => {
     content: "",
     embeds: [
       scoreListEmbed(items, {
-        title: `Top ${RULESET_NAMES[view.ruleset]} plays`,
+        title: tx("topRulesetPlays", { ruleset: RULESET_NAMES[view.ruleset] }),
         url: profileUrl,
         player: list.profile,
         page,

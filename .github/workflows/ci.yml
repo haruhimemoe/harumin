@@ -20,4 +20,4 @@ jobs:
         with:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
-      - run: bun run check && bun run typecheck && bun run test:coverage
+      - run: bun run check && bun run typecheck && bun run check:keys && bun run test:coverage

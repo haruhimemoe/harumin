@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- harumin answers in the asker's Discord language and link cards in the server's, from the `harumin-bot` catalog of `@haruhimemoe/messages` (English fills any gap). Command descriptions and choices register with Discord's localizations for every catalog language; names stay English. Card images follow the same language. English only for now.
+
 ### Changed
 
 - CI runs CodeQL and a gitleaks scan of the full git history, and Dependabot covers dependencies and pinned actions. Dependencies are on their latest versions.

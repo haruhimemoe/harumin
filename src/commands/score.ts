@@ -5,12 +5,13 @@
  *       the images can't be had).
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Wed Oct 7, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { beatmapUrl, userUrl } from "@haruhimemoe/osu/shapes";
 import { SlashCommandBuilder } from "discord.js";
 import { scoreEmbed, scoreListEmbed } from "../embeds/osu.ts";
+import { scope, translate } from "../i18n.ts";
 import type { Command } from "../types.ts";
 import { mapLabel } from "../utils/format.ts";
 import { toScoreCard, toScoreListCard } from "../views/cards.ts";
@@ -24,6 +25,8 @@ import {
   loadPlayer,
   mapFromOption,
 } from "./shared.ts";
+
+const t = scope("score");
 
 export const score: Command = {
   category: "osu",
@@ -79,11 +82,11 @@ export const score: Command = {
       s.context.nameMap(beatmapId, mapLabel({ ...best.beatmapset, ...best.beatmap }));
     }
     const pp = await tryScorePp(s, best);
-    const heading = "Best score on this map";
+    const heading = t("bestScoreOnThis");
     const rest = scores.slice(1, 6).map((each, i) => ({ score: each, place: i + 2 }));
     const restTitle = `${scores.length - 1} more`;
     const links = linkButtons([
-      { label: "Beatmap", url: beatmapUrl(beatmapId) },
+      { label: translate("common.beatmap"), url: beatmapUrl(beatmapId) },
       { label: "osu! profile", url: `${userUrl(profile.osuId)}/${best.ruleset}` },
     ]);
     const [png, restPng] = await Promise.all([

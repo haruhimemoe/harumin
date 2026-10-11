@@ -11,7 +11,7 @@
  *       <message>) starts the same thing from the posted file.
  * @author David @dvhsh (https://dvh.sh)
  * @created Sat Oct 10, 2026
- * @modified Sat Oct 10, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { OsuApiError } from "@haruhimemoe/osu";
@@ -21,6 +21,7 @@ import {
   type Message,
   SlashCommandBuilder,
 } from "discord.js";
+import { scope } from "../i18n.ts";
 import type { RenderState } from "../services/renders.ts";
 import type { Command, Services } from "../types.ts";
 import {
@@ -31,6 +32,8 @@ import {
   replayLine,
 } from "../views/replay.ts";
 import { fail } from "./shared.ts";
+
+const t = scope("render");
 
 type ScoreRuleset = "osu" | "taiko" | "fruits" | "mania";
 
@@ -63,8 +66,8 @@ export const parseScoreRef = (text: string): ScoreRef | null => {
  */
 const minutes = (ms: number): string => {
   const count = Math.ceil(ms / 60_000);
-  if (count <= 0) return "now";
-  return `in about ${count} minute${count === 1 ? "" : "s"}`;
+  if (count <= 0) return t("now");
+  return t("inMinutes", { count });
 };
 
 /**
@@ -75,13 +78,16 @@ const minutes = (ms: number): string => {
 export const renderStatus = (state: RenderState): string => {
   switch (state.kind) {
     case "queued":
-      return `Render #${state.position} in line, starts ${minutes(state.startsInMs)}.`;
+      return t("renderPositionInLine", {
+        position: state.position,
+        startsInMs: minutes(state.startsInMs),
+      });
     case "rendering":
-      return `Rendering: ${state.progress}`;
+      return t("renderingProgress", { progress: state.progress });
     case "done":
-      return "Render done. The video is in the reply below.";
+      return t("renderDoneTheVideo");
     case "failed":
-      return `Render failed. ${state.message}`;
+      return t("renderFailedMessage", { message: state.message });
   }
 };
 
@@ -134,7 +140,7 @@ export const startRender = async (
   // Without a card the map line goes under the status, so the reply still says what it is.
   const below = png ? "" : `\n${replayLine(replay)}`;
   const message: Message = await interaction.editReply({
-    content: `Getting in line...${below}`,
+    content: t("gettingInLineBelow", { below }),
     embeds: [],
     files: png ? [{ attachment: png, name: "replay.png" }] : [],
   });
@@ -161,17 +167,13 @@ export const startRender = async (
           .catch(() =>
             interaction.followUp({ content: state.videoUrl, allowedMentions: { parse: [] } }),
           )
-          .catch(() => interaction.user.send(`Your render: ${state.videoUrl}`))
+          .catch(() => interaction.user.send(t("yourRenderVideourl", { videoUrl: state.videoUrl })))
           .catch(() => undefined);
       }
     },
   });
   if (!taken.ok) {
-    say(
-      taken.reason === "already"
-        ? "You already have a replay in line. Wait for it to start."
-        : "The render line is full. Try again in a few minutes.",
-    );
+    say(taken.reason === "already" ? t("youAlreadyHaveA") : t("theRenderLineIs"));
   }
 };
 
@@ -197,29 +199,29 @@ export const render: Command = {
     const skin = interaction.options.getString("skin")?.trim() || "default";
     if (replay) {
       if (!replay.name.toLowerCase().endsWith(".osr")) {
-        await fail(interaction, "That isn't a replay. Attach the `.osr` file osu! saves.");
+        await fail(interaction, t("thatIsnTA"));
         return;
       }
       if (replay.size > MAX_REPLAY_BYTES) {
-        await fail(interaction, "That replay is over 10 MB, which is more than o!rdr takes.");
+        await fail(interaction, t("thatReplayIsOver"));
         return;
       }
       await interaction.deferReply();
       const bytes = await fetchReplay(replay.url);
       if (!bytes) {
-        await fail(interaction, "Discord didn't hand over that file. Try attaching it again.");
+        await fail(interaction, t("discordDidnTHand"));
         return;
       }
       await startRender(interaction, s, bytes, skin);
       return;
     }
     if (!scoreText) {
-      await fail(interaction, "Give a `score` link or attach a `replay` (.osr).");
+      await fail(interaction, t("giveAScoreLink"));
       return;
     }
     const ref = parseScoreRef(scoreText);
     if (!ref) {
-      await fail(interaction, "That isn't a score link. Copy it from the score's page on osu!.");
+      await fail(interaction, t("thatIsnTA2"));
       return;
     }
     await interaction.deferReply();
@@ -253,7 +255,7 @@ export const render: Command = {
     const file = posted?.attachments.find((a) => a.name.toLowerCase().endsWith(".osr"));
     const bytes = file && file.size <= MAX_REPLAY_BYTES ? await fetchReplay(file.url) : null;
     if (!bytes) {
-      await fail(interaction, "That replay isn't there anymore. Post it again or use **/render**.");
+      await fail(interaction, t("thatReplayIsnT"));
       return;
     }
     await startRender(interaction, s, bytes, "default");

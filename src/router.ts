@@ -5,15 +5,18 @@
  *       failures into a short reply (osu! busy, osu! down, or a logged bug).
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { OsuApiError } from "@haruhimemoe/osu";
 import type { Interaction, RepliableInteraction } from "discord.js";
 import { handleAutocomplete } from "./commands/autocomplete.ts";
 import { fail } from "./commands/shared.ts";
+import { scope, withLocale } from "./i18n.ts";
 import { findCommand } from "./registry.ts";
 import type { Services } from "./types.ts";
+
+const t = scope("router");
 
 /**
  * @function failureText
@@ -29,7 +32,7 @@ export const failureText = (error: unknown): string => {
       return "osu! isn't answering right now. Try again in a minute.";
     }
   }
-  return "Something broke on harumin's side. It's been logged.";
+  return t("somethingBrokeOnHarumin");
 };
 
 const report = async (
@@ -53,36 +56,40 @@ const report = async (
  */
 export const createRouter =
   (s: Services, log: (message: string, error?: unknown) => void) =>
-  async (interaction: Interaction): Promise<void> => {
-    if (interaction.guildId) s.members.seen(interaction.guildId, interaction.user.id);
-    if (interaction.isAutocomplete()) {
-      await handleAutocomplete(interaction, s).catch((error) => log("autocomplete failed", error));
-      return;
+  (interaction: Interaction): Promise<void> =>
+    // Every reply below speaks the asker's Discord language (src/i18n.ts).
+    withLocale(interaction.locale, () => route(s, log, interaction));
+
+const route = async (
+  s: Services,
+  log: (message: string, error?: unknown) => void,
+  interaction: Interaction,
+): Promise<void> => {
+  if (interaction.guildId) s.members.seen(interaction.guildId, interaction.user.id);
+  if (interaction.isAutocomplete()) {
+    await handleAutocomplete(interaction, s).catch((error) => log("autocomplete failed", error));
+    return;
+  }
+  if (interaction.isChatInputCommand()) {
+    const command = findCommand(interaction.commandName);
+    if (!command) return;
+    try {
+      await command.execute(interaction, s);
+    } catch (error) {
+      await report(interaction, error, log);
     }
-    if (interaction.isChatInputCommand()) {
-      const command = findCommand(interaction.commandName);
-      if (!command) return;
-      try {
-        await command.execute(interaction, s);
-      } catch (error) {
-        await report(interaction, error, log);
-      }
-      return;
+    return;
+  }
+  if (interaction.isButton() || interaction.isModalSubmit()) {
+    const [name = "", ...args] = interaction.customId.split(":");
+    const command = findCommand(name);
+    const handler = interaction.isButton() ? command?.button : command?.modal;
+    if (!command || !handler) return;
+    try {
+      // biome-ignore lint/suspicious/noExplicitAny: the guard above matched handler to interaction
+      await (handler as (i: any, s: Services, a: string[]) => Promise<void>)(interaction, s, args);
+    } catch (error) {
+      await report(interaction, error, log);
     }
-    if (interaction.isButton() || interaction.isModalSubmit()) {
-      const [name = "", ...args] = interaction.customId.split(":");
-      const command = findCommand(name);
-      const handler = interaction.isButton() ? command?.button : command?.modal;
-      if (!command || !handler) return;
-      try {
-        // biome-ignore lint/suspicious/noExplicitAny: the guard above matched handler to interaction
-        await (handler as (i: any, s: Services, a: string[]) => Promise<void>)(
-          interaction,
-          s,
-          args,
-        );
-      } catch (error) {
-        await report(interaction, error, log);
-      }
-    }
-  };
+  }
+};

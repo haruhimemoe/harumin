@@ -3,16 +3,19 @@
  * @desc /compare: two players side by side. `player` against you (or against `other`).
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Wed Oct 7, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { userUrl } from "@haruhimemoe/osu/shapes";
 import { SlashCommandBuilder } from "discord.js";
 import { compareEmbed } from "../embeds/osu.ts";
+import { scope } from "../i18n.ts";
 import { parsePlayerInput, pickRuleset, playerKey, resolvePlayer } from "../services/players.ts";
 import type { Command } from "../types.ts";
 import { toCompareCard } from "../views/cards.ts";
 import { addModeOption, cardReply, fail, linkButtons, linkHint } from "./shared.ts";
+
+const t = scope("compare");
 
 export const compare: Command = {
   category: "osu",
@@ -37,7 +40,7 @@ export const compare: Command = {
   async execute(interaction, s) {
     const first = parsePlayerInput(interaction.options.getString("player", true));
     if (!first) {
-      await fail(interaction, "That isn't an osu! username.");
+      await fail(interaction, t("thatIsnTAn"));
       return;
     }
     await interaction.deferReply();

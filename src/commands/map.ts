@@ -3,14 +3,17 @@
  * @desc /map: a map card image with stars, stats and pp at 95 to 100% for the given mods.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Wed Oct 7, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { SlashCommandBuilder } from "discord.js";
+import { scope } from "../i18n.ts";
 import type { Command } from "../types.ts";
 import { parseModsInput } from "../utils/mods.ts";
 import { renderMap } from "../views/map.ts";
 import { addMapOption, fail, mapFromOption } from "./shared.ts";
+
+const t = scope("map");
 
 export const map: Command = {
   category: "osu",
@@ -24,7 +27,7 @@ export const map: Command = {
   async execute(interaction, s) {
     const mods = parseModsInput(interaction.options.getString("mods") ?? "");
     if (mods === null) {
-      await fail(interaction, "That isn't a mod combination. Try `HDDT` or `HR`.");
+      await fail(interaction, t("thatIsnTA"));
       return;
     }
     const beatmapId = await mapFromOption(interaction, s);

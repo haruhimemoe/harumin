@@ -6,7 +6,7 @@
  *       stays a text embed.
  * @author David @dvhsh (https://dvh.sh)
  * @created Sat Oct 10, 2026
- * @modified Sat Oct 10, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { MAX_NOTICE_LENGTH, type NoticeCard } from "@haruhimemoe/harumin-config";

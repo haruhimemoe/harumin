@@ -6,15 +6,18 @@
  *       can't be shown or rendered.
  * @author David @dvhsh (https://dvh.sh)
  * @created Sat Oct 10, 2026
- * @modified Sat Oct 10, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import type { BeatmapDetail, OsuScore, OsuUserProfile } from "@haruhimemoe/osu";
 import { parseReplayHeader, type ReplayHeader, replayScore } from "@haruhimemoe/osu/replay";
+import { scope } from "../i18n.ts";
 import type { ScorePp } from "../services/pp.ts";
 import type { Services } from "../types.ts";
 import { toScoreCard } from "./cards.ts";
 import { tryScorePp } from "./pp.ts";
+
+const t = scope("replay");
 
 /** Biggest .osr taken. Replays of long maps run a few MB. */
 export const MAX_REPLAY_BYTES = 10 * 1024 * 1024;
@@ -86,7 +89,7 @@ export type ReplayProblem = "unreadable" | "unknown_map";
 
 /** What to tell someone for each problem. */
 export const REPLAY_PROBLEMS: Readonly<Record<ReplayProblem, string>> = Object.freeze({
-  unreadable: "That file isn't an osu! replay I can read.",
+  unreadable: t("thatFileIsnT"),
   unknown_map:
     "osu! doesn't know the map this replay was played on (unsubmitted, or changed since), so it can't be shown or rendered.",
 });

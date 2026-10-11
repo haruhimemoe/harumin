@@ -6,18 +6,21 @@
  *       Sets the channel's map.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Thu Oct 8, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { beatmapUrl } from "@haruhimemoe/osu/shapes";
 import { SlashCommandBuilder } from "discord.js";
 import { scoreEmbed } from "../embeds/osu.ts";
+import { scope, translate } from "../i18n.ts";
 import type { Command } from "../types.ts";
 import { mapLabel, RULESET_NAMES } from "../utils/format.ts";
 import { toScoreCard } from "../views/cards.ts";
 import { tryScorePp } from "../views/pp.ts";
 import { sessionOf } from "../views/session.ts";
 import { addPlayerOptions, cardReply, fail, linkButtons, loadPlayer } from "./shared.ts";
+
+const t = scope("recent");
 
 export const recent: Command = {
   category: "osu",
@@ -68,7 +71,7 @@ export const recent: Command = {
       s.context.nameMap(score.beatmapId, mapLabel({ ...score.beatmapset, ...score.beatmap }));
     }
     s.context.rememberMap(interaction.channelId, score.beatmapId);
-    const heading = index > 1 ? `Recent play #${index}` : "Most recent play";
+    const heading = index > 1 ? t("recentPlayIndex", { index }) : t("mostRecentPlay");
     const tryCount = tries === -1 ? scores.length - index + 1 : tries;
     const session = sessionOf(
       all.map((play) => ({
@@ -79,7 +82,9 @@ export const recent: Command = {
       })),
       all.indexOf(score),
     );
-    const links = linkButtons([{ label: "Beatmap", url: beatmapUrl(score.beatmapId) }]);
+    const links = linkButtons([
+      { label: translate("common.beatmap"), url: beatmapUrl(score.beatmapId) },
+    ]);
     const png = await s.cards.draw(
       "score",
       toScoreCard(score, { profile, ruleset, pp, heading, tries: tryCount, session }),

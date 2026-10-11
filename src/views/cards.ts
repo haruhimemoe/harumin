@@ -7,7 +7,7 @@
  *       assets.ppy.sh are dropped and odd mod acronyms skipped, so a card always parses.
  * @author David @dvhsh (https://dvh.sh)
  * @created Wed Oct 7, 2026
- * @modified Thu Oct 8, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import type {
@@ -23,9 +23,12 @@ import type {
   SimulateCard,
 } from "@haruhimemoe/harumin-config";
 import type { BeatmapDetail, OsuMod, OsuScore, OsuUserProfile } from "@haruhimemoe/osu";
+import { scope } from "../i18n.ts";
 import type { AccuracyPp, MapAttributes, ScorePp } from "../services/pp.ts";
 import { completion } from "../utils/format.ts";
 import type { Session } from "./session.ts";
+
+const t = scope("cards");
 
 /** Each ruleset's judgements, in order, with the label a card prints. */
 const HIT_LABELS: Readonly<Record<Ruleset, readonly (readonly [string, string])[]>> = {
@@ -154,7 +157,9 @@ export const toCardScore = (score: OsuScore, pp: ScorePp | null): CardScore => {
       beatmapsetId: score.beatmap?.beatmapsetId ?? score.beatmapset?.beatmapsetId ?? null,
       artist: score.beatmapset?.artistUnicode || score.beatmapset?.artist || "",
       title:
-        score.beatmapset?.titleUnicode || score.beatmapset?.title || `Beatmap #${score.beatmapId}`,
+        score.beatmapset?.titleUnicode ||
+        score.beatmapset?.title ||
+        t("beatmapBeatmapid", { beatmapId: score.beatmapId }),
       version: score.beatmap?.version ?? "",
       stars: pp?.stars ?? score.beatmap?.starRating ?? null,
     },

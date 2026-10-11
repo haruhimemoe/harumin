@@ -4,13 +4,16 @@
  *       so it can't drift.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { MessageFlags, SlashCommandBuilder } from "discord.js";
 import { commandHelpEmbed, helpEmbed } from "../embeds/bot.ts";
+import { scope } from "../i18n.ts";
 import type { Command } from "../types.ts";
 import { fail } from "./shared.ts";
+
+const t = scope("help");
 
 export const help: Command = {
   category: "bot",
@@ -34,7 +37,7 @@ export const help: Command = {
     }
     const command = publicCommands().find((each) => each.data.name === name);
     if (!command) {
-      await fail(interaction, `There's no \`/${name}\`. Run \`/help\` for the list.`);
+      await fail(interaction, t("thereSNo", { name }));
       return;
     }
     await interaction.reply({ embeds: [commandHelpEmbed(command)], flags: MessageFlags.Ephemeral });

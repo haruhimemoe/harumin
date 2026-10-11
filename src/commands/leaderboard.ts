@@ -4,7 +4,7 @@
  *       (filtered here: osu! filters by mod only for supporters signed in).
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Wed Oct 7, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import type { BeatmapDetail, OsuScore } from "@haruhimemoe/osu";
@@ -12,6 +12,7 @@ import { formatMods } from "@haruhimemoe/osu/format";
 import { beatmapUrl } from "@haruhimemoe/osu/shapes";
 import { SlashCommandBuilder } from "discord.js";
 import { leaderboardEmbed } from "../embeds/osu.ts";
+import { scope, translate } from "../i18n.ts";
 import { createTtlCache } from "../services/cache.ts";
 import type { Command, Services } from "../types.ts";
 import { mapLabel } from "../utils/format.ts";
@@ -26,6 +27,8 @@ import {
   mapFromOption,
   pageButtons,
 } from "./shared.ts";
+
+const t = scope("leaderboard");
 
 const PER_PAGE = 10;
 const boards = createTtlCache<number, { map: BeatmapDetail; scores: OsuScore[] }>(120_000, 200);
@@ -54,7 +57,7 @@ const render = async (
   const options = { start: (view.page - 1) * PER_PAGE, page: view.page, pages: view.pages };
   const rows = [
     ...pageButtons(`leaderboard:${board.map.beatmapId}:${mods}`, view.page, view.pages),
-    ...linkButtons([{ label: "Beatmap", url: beatmapUrl(board.map.beatmapId) }]),
+    ...linkButtons([{ label: translate("common.beatmap"), url: beatmapUrl(board.map.beatmapId) }]),
   ];
   const png = await s.cards.draw(
     "leaderboard",
@@ -95,7 +98,7 @@ export const leaderboard: Command = {
     const modsInput = interaction.options.getString("mods");
     const filter = modsInput ? parseModsInput(modsInput) : null;
     if (modsInput && filter === null) {
-      await fail(interaction, "That isn't a mod combination. Try `HD` or `NM`.");
+      await fail(interaction, t("thatIsnTA"));
       return;
     }
     const beatmapId = await mapFromOption(interaction, s);

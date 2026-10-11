@@ -4,14 +4,17 @@
  *       when the image can't be had). Ephemeral.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Thu Oct 8, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { MessageFlags, SlashCommandBuilder } from "discord.js";
 import { inviteUrl, LINKS, userInstallUrl } from "../constants.ts";
 import { notice } from "../embeds/common.ts";
+import { scope } from "../i18n.ts";
 import type { Command } from "../types.ts";
 import { imageOrEmbed, linkButtons } from "./shared.ts";
+
+const t = scope("invite");
 
 export const invite: Command = {
   category: "bot",
@@ -26,15 +29,12 @@ export const invite: Command = {
       imageOrEmbed(
         png,
         "invite.png",
-        () =>
-          notice(
-            `Add harumin to a server you manage. Settings live on the [dashboard](${LINKS.dashboard}).`,
-          ),
+        () => notice(t("addHaruminToA", { dashboard: LINKS.dashboard })),
         linkButtons([
-          { label: "Add to server", url: inviteUrl(s.env.DISCORD_CLIENT_ID) },
-          { label: "Add to your apps", url: userInstallUrl(s.env.DISCORD_CLIENT_ID) },
-          { label: "Dashboard", url: LINKS.dashboard },
-          { label: "Website", url: LINKS.site },
+          { label: t("addToServer"), url: inviteUrl(s.env.DISCORD_CLIENT_ID) },
+          { label: t("addToYourApps"), url: userInstallUrl(s.env.DISCORD_CLIENT_ID) },
+          { label: t("dashboard"), url: LINKS.dashboard },
+          { label: t("website"), url: LINKS.site },
         ]),
       ),
     );

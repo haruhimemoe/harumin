@@ -4,7 +4,7 @@
  *       gif (ffmpeg lays it under the card), else still, else the text embed.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Thu Oct 8, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import type { Ruleset } from "@haruhimemoe/harumin-config";

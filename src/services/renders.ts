@@ -6,10 +6,13 @@
  *       line, ten in line at most. The line lives in memory: a restart drops it.
  * @author David @dvhsh (https://dvh.sh)
  * @created Sat Oct 10, 2026
- * @modified Sat Oct 10, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { type OrdrClient, OrdrError } from "@haruhimemoe/ordr";
+import { scope } from "../i18n.ts";
+
+const t = scope("renders");
 
 /** o!rdr's limit without a key: one render per 5 minutes. */
 export const RENDER_GAP_MS = 5 * 60_000;
@@ -59,7 +62,7 @@ const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(r
  * @returns {string} what to tell the person
  */
 export const failureText = (error: unknown): string =>
-  error instanceof OrdrError ? `o!rdr said no: ${error.message}` : "o!rdr didn't answer.";
+  error instanceof OrdrError ? t("refused", { message: error.message }) : t("noAnswer");
 
 /**
  * @function createRenders
@@ -117,7 +120,7 @@ export const createRenders = (
         });
         line.shift();
         nextStart = now() + gapMs;
-        job.onUpdate({ kind: "rendering", progress: "Sent to o!rdr" });
+        job.onUpdate({ kind: "rendering", progress: t("sentToORdr") });
         void follow(job, renderId);
       } catch (error) {
         if (error instanceof OrdrError && error.retryable) {

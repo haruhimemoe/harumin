@@ -5,7 +5,7 @@
  *       (at most 50 profiles, cached ten minutes).
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Thu Oct 8, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import type { Ruleset } from "@haruhimemoe/harumin-config";
@@ -18,6 +18,7 @@ import {
   serverEmbed,
   showStat,
 } from "../embeds/social.ts";
+import { scope } from "../i18n.ts";
 import { createTtlCache } from "../services/cache.ts";
 import { pickRuleset } from "../services/players.ts";
 import type { Command, Services } from "../types.ts";
@@ -25,6 +26,8 @@ import { mapLimit } from "../utils/async.ts";
 import { pageOf } from "../utils/scores.ts";
 import { toServerCard } from "../views/toolCards.ts";
 import { addModeOption, cardReply, fail, pageButtons } from "./shared.ts";
+
+const t = scope("server");
 
 /** The server, as the card needs it. */
 type Guild = { id: string; name: string; icon: string | null };
@@ -168,7 +171,7 @@ export const server: Command = {
         rows: await build(s, key.guildId, key.ruleset, key.stat),
         guild: interaction.guild
           ? guildOf(interaction.guild)
-          : { id: key.guildId, name: "This server", icon: null },
+          : { id: key.guildId, name: t("thisServer"), icon: null },
       };
       boards.set(`${key.guildId}:${key.ruleset}:${key.stat}`, board);
     }
