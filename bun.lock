@@ -7,7 +7,7 @@
       "dependencies": {
         "@haruhimemoe/compliance": "0.1.1",
         "@haruhimemoe/harumin-config": "0.12.0",
-        "@haruhimemoe/messages": "0.1.0",
+        "@haruhimemoe/messages": "0.2.11",
         "@haruhimemoe/ordr": "0.1.0",
         "@haruhimemoe/osu": "0.9.0",
         "@haruhimemoe/pool": "0.4.0",
@@ -78,7 +78,7 @@
 
     "@haruhimemoe/harumin-config": ["@haruhimemoe/harumin-config@0.12.0", "", { "peerDependencies": { "zod": "^4.0.16" } }, "sha512-TSD7mr+4m+NHqNbjjPTWDw5Ije4xayoHGt+M/unlqKbnH9NktzLecJRxHGoq6Tz7bSyhbNg9HEl74/OVbzVPAQ=="],
 
-    "@haruhimemoe/messages": ["@haruhimemoe/messages@0.1.0", "", { "bin": { "messages-check-keys": "bin/check-keys.mjs" } }, "sha512-FOeJ7ILApIfPIw+fLA7Re1M8Pcd/2pull7mCSvi0042U2XZxGPK/3Uh/1rTYmb0chH2ZaSPsxHjVrhRVNLPgpA=="],
+    "@haruhimemoe/messages": ["@haruhimemoe/messages@0.2.11", "", { "bin": { "messages-check-keys": "bin/check-keys.mjs" } }, "sha512-zoRRuFh1RZkDrqgkgA+VjHsnwh8dwrBS/7kyU4YwECGF0Mv8mpXGYKOGnz0jFDRDkVSzOe8PgxUizoGqDSOd6g=="],
 
     "@haruhimemoe/ordr": ["@haruhimemoe/ordr@0.1.0", "", { "peerDependencies": { "zod": "^4.0.16" } }, "sha512-LZSxUeD24Kpl7ll7PV5kg4nfXP1jbP91/MfbzvJ1kQUB7sU3RGRHSm0qmwsOuV5BrSBLQPJrwFRIqt/Y5sKkqw=="],
 
